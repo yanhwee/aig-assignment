@@ -125,10 +125,8 @@ def calculate_preaim_collision(
 def preaim_entity(hero: Character, entity: GameEntity) -> Vector2:
     '''Public: Calculate where the hero should shoot to hit a moving entity'''
     return calculate_preaim_collision(
-        hero.position,
-        entity.position,
-        getattr(entity, 'velocity', Vector2(0, 0)),
-        hero.projectile_speed)
+        hero.position, entity.position, 
+        entity.velocity, hero.projectile_speed)
 
 ###  Targetting  ###
 def enemy_between(entityA: GameEntity, entityB: GameEntity) -> bool:
