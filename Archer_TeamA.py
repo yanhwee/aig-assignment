@@ -51,26 +51,32 @@ class ArcherStateSeeking_TeamA(State):
         if enemy:
             return 'attacking'
         # check if reach target node
-        if g.touching_target(self.archer, self.archer.move_target):
-            g.set_move_target(self.archer, self.path[self.current_connection].toNode.position)
-            self.current_connection += 1
+        # if g.touching_target(self.archer, self.archer.move_target):
+        #     g.set_move_target(self.archer, self.path[self.current_connection].toNode.position)
+        #     self.current_connection += 1
+        # move towards enemy base
+        enemy_base = g.get_enemy_base(self.archer)
+        path_pos = g.position_towards_target_using_path(self.archer, enemy_base)
+        g.set_move_target(self.archer, path_pos)
         return None
 
     def entry_actions(self):
+
+        g.switch_to_path(self.archer, 3)
         
-        nearest_node = self.archer.path_graph.get_nearest_node(self.archer.position)
-        self.path = pathFindAStar(self.archer.path_graph, \
-                                  nearest_node, \
-                                  self.archer.path_graph.nodes[self.archer.base.target_node_index])
+        # nearest_node = self.archer.path_graph.get_nearest_node(self.archer.position)
+        # self.path = pathFindAStar(self.archer.path_graph, \
+        #                           nearest_node, \
+        #                           self.archer.path_graph.nodes[self.archer.base.target_node_index])
         # make_node = lambda pos: Node(None, None, *pos)
         # make_conn = lambda from_pos, to_pos: Connection(None, None, make_node(from_pos), make_node(to_pos))
         # self.path = [make_conn(a, b) for a, b in g.pairwise(self.archer.paths[0])]
-        self.path_length = len(self.path)
-        if (self.path_length > 0):
-            self.current_connection = 0
-            g.set_move_target(self.archer, self.path[0].fromNode.position)
-        else:
-            self.archer.move_target.position = self.archer.path_graph.nodes[self.archer.base.target_node_index].position
+        # self.path_length = len(self.path)
+        # if (self.path_length > 0):
+        #     self.current_connection = 0
+        #     g.set_move_target(self.archer, self.path[0].fromNode.position)
+        # else:
+        #     self.archer.move_target.position = self.archer.path_graph.nodes[self.archer.base.target_node_index].position
 
 class ArcherStateAttacking_TeamA(State):
     def __init__(self, archer):
@@ -85,6 +91,9 @@ class ArcherStateAttacking_TeamA(State):
         if enemy:
             preaim_position = g.preaim_entity(self.archer, enemy)
             self.archer.ranged_attack(preaim_position)
+            path_pos = g.position_away_from_target_using_path(self.archer, enemy)
+            g.set_move_target(self.archer, path_pos)
+            g.update_velocity(self.archer)
 
     def check_conditions(self):
         # Check if enemy is out of range

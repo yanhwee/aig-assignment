@@ -284,14 +284,14 @@ def get_paths(hero: Character) -> [[Vector2]]:
     #                 xs))),
     #         (first, second, third, fourth)))
 
-def best_path_value_from_pos(
+def best_path_value_from_position(
     paths: Tuple[Vector2], position: Vector2) -> [int, float]:
     values, losses = zip(*
-        [path_value_from_pos(path, position) for path in paths])
+        [path_value_from_position(path, position) for path in paths])
     path_index = argmin(losses)
     return path_index, values[path_index]
 
-def path_value_from_pos(
+def path_value_from_position(
     path: [Vector2], position: Vector2) -> [float, float]:
     assert(len(path) >= 2)
     p = position
@@ -324,7 +324,7 @@ def path_value_from_pos(
     path_value = p_dist / path_dist
     return path_value, min(vp_min_dist, abp_min_dist)
 
-def pos_from_path_value(
+def position_from_path_value(
     path: [Vector2], value: float) -> Vector2:
     path_value = value
     ab_vectors = [b - a for a, b in pairwise(path)]
@@ -334,9 +334,10 @@ def pos_from_path_value(
     p_dist = path_dist * path_value
     i = next(
         i for i, acc_dist in enumerate(ab_acc_dists) 
-        if p_dist < acc_dist) - 1
-    p_proj = p_dist - (ab_acc_dists[i] if i else 0)
-    p = path[i] + ab_vectors[i].scale_to_length(p_proj)
+        if p_dist < acc_dist)
+    p_proj = p_dist - (ab_acc_dists[i - 1] if i else 0)
+    scale_to_length = lambda v, length: v / v.length() * length
+    p = path[i] + scale_to_length(ab_vectors[i], p_proj)
     return p
 
 def position_towards_target_using_path(
@@ -353,14 +354,14 @@ def position_away_from_target_using_path(
 
 def path_position_a_to_b(
     path: [Vector2], a: Vector2, b: Vector2, towards: bool,
-    epsilon=1e-2, proximity_threshold=-1) -> Vector2:
-    a_pv, a_loss = path_value_from_pos(path, a)
-    b_pv, b_loss = path_value_from_pos(path, b)
+    epsilon=1e-1, proximity_threshold=-1) -> Vector2:
+    a_pv, a_loss = path_value_from_position(path, a)
+    b_pv, b_loss = path_value_from_position(path, b)
     a_pv += (b_pv - a_pv) * epsilon * (1 if towards else -1)
     if towards and (abs(a_pv - b_pv) <= proximity_threshold):
         return b
     if 0 <= a_pv <= 1:
-        return pos_from_path_value(path, a_pv)
+        return position_from_path_value(path, a_pv)
     else:
         return b if towards else 2 * a - b
 
@@ -369,6 +370,7 @@ def path_position_a_to_b(
 #     path =
 
 def switch_to_path(hero: Character, path_index: int) -> None:
+    assert(0 <= path_index < len(hero.paths))
     hero.path_index = path_index
 
 ###  Utils  ###
