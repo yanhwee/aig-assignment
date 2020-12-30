@@ -76,11 +76,13 @@ def init_hero(hero: Character) -> None:
 def set_move_target(
     hero: Character, 
     target: Union[None, Tuple[float, float], Vector2, GameEntity]) -> None:
+    '''Public: Set where the hero should move to'''
     if isinstance(target, tuple):
         target = Vector2(target)
     hero.move_target = target
 
 def update_velocity(hero: Character) -> None:
+    '''Public: Update velocity based on move target'''
     target = hero.move_target
     if target is None:
         hero.velocity = Vector2(0, 0)
@@ -92,6 +94,7 @@ def update_velocity(hero: Character) -> None:
         raise Exception
 
 def update_velocity_towards(hero: Character, position: Vector2) -> None:
+    '''Private: Update velocity based on target position'''
     velocity = position - hero.position
     if velocity: # If non-zero
         velocity.scale_to_length(hero.maxSpeed)
@@ -103,12 +106,14 @@ def update_velocity_towards(hero: Character, position: Vector2) -> None:
 def set_attack_target(
     hero: Character, 
     target: Union[None, Tuple[float, float], Vector2, GameEntity]) -> None:
+    '''Depreacted: don't use'''
     if isinstance(target, tuple):
         target = Vector2(target)
     hero.attack_target = target
 
 def calculate_preaim_collision(
     p1: Vector2, p2: Vector2, v: Vector2, s: Vector2) -> Vector2:
+    '''Private: Calculate the intersection of two position and velocity with speed'''
     p = p2 - p1
     a = v.magnitude_squared() - s ** 2
     b = 2 * p.dot(v)
@@ -118,6 +123,7 @@ def calculate_preaim_collision(
     return x
 
 def preaim_entity(hero: Character, entity: GameEntity) -> Vector2:
+    '''Public: Calculate where the hero should shoot to hit a moving entity'''
     return calculate_preaim_collision(
         hero.position,
         entity.position,
@@ -127,6 +133,9 @@ def preaim_entity(hero: Character, entity: GameEntity) -> Vector2:
 ###  Targetting  ###
 def enemy_between(entityA: GameEntity, entityB: GameEntity) -> bool:
     return (entityA.team_id) == (1 - entityB.team_id)
+
+def friendly_between(entityA: GameEntity, entityB: GameEntity) -> bool:
+    return entityA.team_id == entityB.team_id
 
 def entity_type_of_any(
     entity: GameEntity,
@@ -156,6 +165,7 @@ def entity_not_ko(entity: GameEntity) -> bool:
 def get_entities_that_are(
     hero: Character,
     *predicates: Callable[[GameEntity], bool]) -> [GameEntity]:
+    '''Public: Retrives entities that fulfils all conditions'''
     return [
         entity for entity in hero.world.entities.values()
         if all(pred(entity) for pred in predicates)]
@@ -163,6 +173,7 @@ def get_entities_that_are(
 def get_nearest_entity_that_is(
     hero: Character, 
     *predicates: Callable[[GameEntity], bool]) -> Union[None, GameEntity]:
+    '''Public: Gets the nearest entity that fulfils all conditions'''
     return min(
         get_entities_that_are(hero, *predicates),
         key=lambda entity: distance_between(hero.position, entity.position),
@@ -171,6 +182,7 @@ def get_nearest_entity_that_is(
 def get_nearest_enemy_that_is(
     hero: Character, 
     *predicates: Callable[[GameEntity], bool]) -> Union[None, GameEntity]:
+    '''Public: Gets the nearest enemy that fulfils all conditions'''
     return get_nearest_entity_that_is(hero,
         lambda entity: enemy_between(entity, hero),
         lambda entity: entity_type_of_any(
@@ -182,6 +194,7 @@ def get_nearest_enemy_that_is(
 def get_nearest_enemy_projectile_that_is(
     hero: Character, 
     *predicates: Callable[[GameEntity], bool]) -> Union[None, GameEntity]:
+    '''Public: Gets the nearest enemy projectile that fulfils all conditions'''
     return get_nearest_entity_that_is(hero,
         lambda entity: enemy_between(entity, hero),
         lambda entity: entity_type_of_any(
@@ -191,8 +204,15 @@ def get_nearest_enemy_projectile_that_is(
         *predicates)
 
 def get_enemy_base(hero: Character) -> GameEntity:
+    '''Public: Gets enemy base'''
     return get_entities_that_are(hero, 
         lambda entity: enemy_between(hero, entity),
+        lambda entity: entity_type_of_any(entity, base=True))[0]
+
+def get_friendly_base(hero: Character) -> GameEntity:
+    '''Public: Gets friendly base'''
+    return get_entities_that_are(hero, 
+        lambda entity: friendly_between(hero, entity),
         lambda entity: entity_type_of_any(entity, base=True))[0]
 
 # def get_nearest_enemy(hero: Character) -> Union[None, Character]:
@@ -200,6 +220,7 @@ def get_enemy_base(hero: Character) -> GameEntity:
 #     return enemy
 
 def line_entity(a: Vector2, b: Vector2, bits: int=50) -> MockEntity:
+    '''Private: Creates fake line entity'''
     width, height = int(max(a.x, b.x)) + 1, int(max(a.y, b.y)) + 1
     mask = Mask((width, height))
     xs, ys = linspace(a.x, b.x, bits), linspace(a.y, b.y, bits)
@@ -211,12 +232,14 @@ def line_entity(a: Vector2, b: Vector2, bits: int=50) -> MockEntity:
         mask=mask)
 
 def colliding_with_entities(this: GameEntity, others: [GameEntity]) -> bool:
+    '''Private: Checks if an entity collides with a group of entities'''
     collided_entities = pygame.sprite.spritecollide(
         this, others, False, pygame.sprite.collide_mask)
     return bool(collided_entities)
 
 def in_sight_with_target(
     hero: Character, target: Union[Vector2, GameEntity]) -> bool:
+    '''Public: Checks if there is no obstacles between hero and target'''
     if isinstance(target, GameEntity): target = target.position
     return not colliding_with_entities(
         line_entity(hero.position, target),
@@ -225,8 +248,8 @@ def in_sight_with_target(
 ###  Proximity  ###
 def touching_target(
     hero: Character,
-    target: Union[Vector2, GameEntity],
-    radius: Union[None, float]=None) -> bool:
+    target: Union[Vector2, GameEntity]) -> bool:
+    '''Public: Checks if hero touches a point of an entity'''
     if isinstance(target, Vector2):
         return hero.rect.collidepoint(target.x, target.y)
     elif isinstance(target, GameEntity):
@@ -238,12 +261,14 @@ def within_range_of_target(
     hero: Character, 
     target: Union[Vector2, GameEntity], 
     radius: Union[None, float]=None) -> bool:
+    '''Public: Checks if target is within hero's attack range'''
     if isinstance(target, GameEntity): target = target.position
     if radius is None:                 radius = hero.projectile_range
     return within_range_between_positions(hero.position, target, radius)
 
 def within_range_between_positions(
     a: Vector2, b: Vector2, radius: float) -> bool:
+    '''Private: Checks if two points are within range'''
     return distance_between(a, b) <= radius
 
 def distance_between(a: Vector2, b: Vector2):
@@ -286,6 +311,7 @@ def get_paths(hero: Character) -> [[Vector2]]:
 
 def best_path_value_from_position(
     paths: Tuple[Vector2], position: Vector2) -> [int, float]:
+    '''Public: Returns most probably path index & the path value of the position'''
     values, losses = zip(*
         [path_value_from_position(path, position) for path in paths])
     path_index = argmin(losses)
@@ -293,6 +319,7 @@ def best_path_value_from_position(
 
 def path_value_from_position(
     path: [Vector2], position: Vector2) -> [float, float]:
+    '''Private: Maps a position on a path to [0, 1] & returns loss'''
     assert(len(path) >= 2)
     p = position
     # Find distance from vertices
@@ -326,6 +353,7 @@ def path_value_from_position(
 
 def position_from_path_value(
     path: [Vector2], value: float) -> Vector2:
+    '''Public: Find the position of the path value on a path'''
     path_value = value
     ab_vectors = [b - a for a, b in pairwise(path)]
     ab_dists = [ab.length() for ab in ab_vectors]
@@ -342,12 +370,14 @@ def position_from_path_value(
 
 def position_towards_target_using_path(
     hero: Character, target: [Vector2, GameEntity]) -> Vector2:
+    '''Public: Returns a position on the path towards target'''
     if isinstance(target, GameEntity): target = target.position
     return path_position_a_to_b(
         hero.paths[hero.path_index], hero.position, target, towards=True)
 
 def position_away_from_target_using_path(
     hero: Character, target: [Vector2, GameEntity]) -> Vector2:
+    '''Public: Returns a position on the path away from target'''
     if isinstance(target, GameEntity): target = target.position
     return path_position_a_to_b(
         hero.paths[hero.path_index], hero.position, target, towards=False)
@@ -355,6 +385,7 @@ def position_away_from_target_using_path(
 def path_position_a_to_b(
     path: [Vector2], a: Vector2, b: Vector2, towards: bool,
     epsilon=1e-1, proximity_threshold=-1) -> Vector2:
+    '''Private: Returns a position on the path towards or away from target'''
     a_pv, a_loss = path_value_from_position(path, a)
     b_pv, b_loss = path_value_from_position(path, b)
     a_pv += (b_pv - a_pv) * epsilon * (1 if towards else -1)

@@ -50,10 +50,6 @@ class ArcherStateSeeking_TeamA(State):
             lambda entity: g.in_sight_with_target(self.archer, entity))
         if enemy:
             return 'attacking'
-        # check if reach target node
-        # if g.touching_target(self.archer, self.archer.move_target):
-        #     g.set_move_target(self.archer, self.path[self.current_connection].toNode.position)
-        #     self.current_connection += 1
         # move towards enemy base
         enemy_base = g.get_enemy_base(self.archer)
         path_pos = g.position_towards_target_using_path(self.archer, enemy_base)
