@@ -198,7 +198,6 @@ def get_nearest_enemy_projectile_that_is(
         lambda entity: entity_type_of_any(
             entity, arrow=True, fireball=True, archer=False, 
             knight=False, wizard=False, orc=False, tower=False, base=False),
-        lambda entity: entity_not_ko(entity),
         *predicates)
 
 def get_enemy_base(hero: Character) -> GameEntity:
