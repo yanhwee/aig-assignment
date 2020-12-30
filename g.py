@@ -216,16 +216,27 @@ def get_friendly_base(hero: Character) -> GameEntity:
 #     enemy = hero.world.get_nearest_opponent(hero)
 #     return enemy
 
-def line_entity(a: Vector2, b: Vector2, bits: int=50) -> MockEntity:
+def line_entity(
+    a: Vector2, b: Vector2, bits: int=50, size: int=10) -> MockEntity:
     '''Private: Creates fake line entity'''
-    width, height = int(max(a.x, b.x)) + 1, int(max(a.y, b.y)) + 1
+    size2 = size * 2
+    # Correct with Padding
+    width = int(max(a.x, b.x)) + size2 + 1
+    height = int(max(a.y, b.y)) + size2 + 1
+    a = a + Vector2(size) # Ensure no in-place modification
+    b = b + Vector2(size)
+    # Create Mask
     mask = Mask((width, height))
-    xs, ys = linspace(a.x, b.x, bits), linspace(a.y, b.y, bits)
-    for x, y in zip(xs, ys):
-        x, y = int(x), int(y)
-        mask.set_at((x, y))
+    def set_line_bits(a: Vector2, b: Vector2) -> None:
+        xs, ys = linspace(a.x, b.x, bits), linspace(a.y, b.y, bits)
+        for x, y in zip(xs, ys):
+            x, y = int(x), int(y)
+            mask.set_at((x, y))
+    offset = (b - a).rotate(90).normalize() * size
+    set_line_bits(a - offset, b - offset)
+    set_line_bits(a + offset, b + offset)
     return MockEntity(
-        rect=Rect(0, 0, width, height),
+        rect=Rect(-size, -size, width, height),
         mask=mask)
 
 def colliding_with_entities(this: GameEntity, others: [GameEntity]) -> bool:
@@ -241,6 +252,11 @@ def in_sight_with_target(
     return not colliding_with_entities(
         line_entity(hero.position, target),
         hero.world.obstacles)
+
+def in_sight_with_preaimed_target(
+    hero: Character, target: Union[Vector2, GameEntity]) -> bool:
+    '''Public: Checks if there is no obstacles between hero and preaimed target'''
+    return in_sight_with_target(hero, preaim_entity(hero, target))
 
 ###  Proximity  ###
 def touching_target(
