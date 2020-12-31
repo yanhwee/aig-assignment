@@ -43,13 +43,13 @@ class Wizard_TeamA(Character):
 
         best = get_best_score(self, 
         lambda entity:health_level_up_evaluate(entity),
-        lambda entity:damage_level_up_evaluate(entity)  )
-        
+        lambda entity:damage_level_up_evaluate(entity))
 
+        
         level_up_stats = ["hp", "speed", "ranged damage", "ranged cooldown", "projectile range"]
         if self.can_level_up():
             choice = randint(0, len(level_up_stats) - 1)
-            self.level_up(level_up_stats[choice])      
+            self.level_up(level_up_stats.index(best))      
 
 
 
@@ -237,10 +237,9 @@ def damage_level_up_evaluate(character:Character) -> int:
     return [min(1,desire), 'ranged damage']
 
 
-
+'''Returns a string after computing the max score'''
 def get_best_score(
     hero: Character,
-    *predicates):
+    *predicates)->str:
     ''' ooo functional programming ehuehue'''
-    print([pred(hero) for pred in predicates])
-    return [max(pred(hero) for pred in predicates)]
+    return [max(pred(hero) for pred in predicates)][0][1]
