@@ -265,7 +265,6 @@ def damage_level_up_evaluate(character:Character) -> int:
     rating_damage = character_feature.get_weapon_damage_per_second(character)
 
     desire = (tweaker * rating_health * (1-rating_damage))/dist_normalized
-    print(desire)
     return [min(1,desire), 'ranged damage']
 
 
