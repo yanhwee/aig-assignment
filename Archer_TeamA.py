@@ -32,7 +32,8 @@ class Archer_TeamA(Character):
         level_up_stats = ["hp", "speed", "ranged damage", "ranged cooldown", "projectile range"]
         if self.can_level_up():
             choice = randint(0, len(level_up_stats) - 1)
-            self.level_up(level_up_stats[choice])
+            # self.level_up(level_up_stats[choice])
+            self.level_up('ranged cooldown')
 
 class ArcherStateSeeking_TeamA(State):
     def __init__(self, archer):
@@ -50,17 +51,37 @@ class ArcherStateSeeking_TeamA(State):
 
     def do_actions(self):
 
-        enemy_base = g.get_enemy_base(self.archer)
-        path_pos = g.position_towards_target_using_path(self.archer, enemy_base)
-        g.set_move_target(self.archer, path_pos)
-        g.update_velocity(self.archer)
-
-    def check_conditions(self):
         enemy = g.get_nearest_enemy_that_is(self.archer,
             lambda entity: g.within_range_of_target(self.archer, entity),
             lambda entity: g.in_sight_with_preaimed_target(self.archer, entity))
-        if enemy:
-            return 'skirmishing'
+        enemy_projectile = g.get_nearest_non_friendly_projectile_that_is(self.archer,
+            lambda entity: g.within_range_of_target(self.archer, entity, radius=100),
+            lambda entity: g.in_sight_with_target(self.archer, entity))
+        enemy_base = g.get_enemy_base(self.archer)
+        if enemy_projectile:
+            path_pos = g.position_away_from_target_using_path(self.archer, enemy_projectile)
+            g.set_move_target(self.archer, path_pos)
+        elif enemy:
+            preaim_position = g.preaim_entity(self.archer, enemy)
+            self.archer.ranged_attack(preaim_position)
+            path_pos = g.position_away_from_target_using_path(self.archer, enemy)
+            g.set_move_target(self.archer, path_pos)
+        else:
+            path_pos = g.position_towards_target_using_path(self.archer, enemy_base)
+            g.set_move_target(self.archer, path_pos)    
+        g.update_velocity(self.archer)
+
+        # enemy_base = g.get_enemy_base(self.archer)
+        # path_pos = g.position_towards_target_using_path(self.archer, enemy_base)
+        # g.set_move_target(self.archer, path_pos)
+        # g.update_velocity(self.archer)
+
+    def check_conditions(self):
+        # enemy = g.get_nearest_enemy_that_is(self.archer,
+        #     lambda entity: g.within_range_of_target(self.archer, entity),
+        #     lambda entity: g.in_sight_with_preaimed_target(self.archer, entity))
+        # if enemy:
+        #     return 'skirmishing'
         return None
 
 class ArcherStateSkirmishing_TeamA(State):
