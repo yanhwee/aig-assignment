@@ -399,7 +399,7 @@ def position_from_path_value(
     p_dist = path_dist * path_value
     i = next(
         i for i, acc_dist in enumerate(ab_acc_dists) 
-        if p_dist < acc_dist)
+        if p_dist <= acc_dist)
     p_proj = p_dist - (ab_acc_dists[i - 1] if i else 0)
     scale_to_length = lambda v, length: v / v.length() * length
     p = path[i] + scale_to_length(ab_vectors[i], p_proj)
