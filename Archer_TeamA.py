@@ -40,9 +40,16 @@ class ArcherStateSeeking_TeamA(State):
         self.archer = archer
 
     def entry_actions(self):
-        g.switch_to_path(self.archer, 3)
+        if g.switchable_to_path(self.archer, 3):
+            g.switch_to_path(self.archer, 3)
+        else:
+            path_index, path_value = \
+                g.most_probable_path_that_target_is_on(
+                    self.archer, self.archer)
+            g.switch_to_path(self.archer, path_index)
 
     def do_actions(self):
+
         enemy_base = g.get_enemy_base(self.archer)
         path_pos = g.position_towards_target_using_path(self.archer, enemy_base)
         g.set_move_target(self.archer, path_pos)

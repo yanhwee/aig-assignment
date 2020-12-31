@@ -1,14 +1,16 @@
 import sys
+from copy import deepcopy
 from math import sqrt
 from itertools import tee, accumulate
 from functools import reduce
-from typing import Callable, Union, Tuple
+from typing import Callable, Union, Tuple, List
 import pygame
 from pygame import Surface, Vector2, Rect, Mask
 from Base import Base
 from GameEntity import GameEntity
 from HAL import World
 from State import State
+from Graph import pathFindAStar
 # from Character import Character
 
 class MockEntity(GameEntity):
@@ -56,7 +58,7 @@ class Character:
         self.move_target: Union[None, Vector2, GameEntity]
         self.attack_target: Union[None, Vector2, GameEntity]
         self.paths: [[Vector2]]
-        self.path_index: int
+        self.path: [Vector2]
 
 ###  Initialisation  ###
 def init_hero(hero: Character) -> None:
@@ -70,7 +72,7 @@ def init_hero(hero: Character) -> None:
     hero.move_target = None
     hero.attack_target = None
     hero.paths = get_paths(hero)
-    hero.path_index = 0
+    hero.path = []
 
 ###  Movement  ###
 def set_move_target(
@@ -202,15 +204,23 @@ def get_nearest_enemy_projectile_that_is(
 
 def get_enemy_base(hero: Character) -> GameEntity:
     '''Public: Gets enemy base'''
-    return get_entities_that_are(hero, 
+    entity = get_first_of(get_entities_that_are(hero, 
         lambda entity: enemy_between(hero, entity),
-        lambda entity: entity_type_of_any(entity, base=True))[0]
+        lambda entity: entity_type_of_any(entity, base=True)))
+    if entity: return entity
+    else: return MockEntity(
+        position=Vector2(
+            hero.world.graph.nodes[hero.base.target_node_index].position))
 
 def get_friendly_base(hero: Character) -> GameEntity:
     '''Public: Gets friendly base'''
-    return get_entities_that_are(hero, 
+    entity = get_first_of(get_entities_that_are(hero, 
         lambda entity: friendly_between(hero, entity),
-        lambda entity: entity_type_of_any(entity, base=True))[0]
+        lambda entity: entity_type_of_any(entity, base=True)))
+    if entity: return entity
+    else: return MockEntity(
+        position=Vector2(
+            hero.world.graph.nodes[hero.base.spawn_node_index].position))
 
 # def get_nearest_enemy(hero: Character) -> Union[None, Character]:
 #     enemy = hero.world.get_nearest_opponent(hero)
@@ -219,12 +229,18 @@ def get_friendly_base(hero: Character) -> GameEntity:
 def line_entity(
     a: Vector2, b: Vector2, bits: int=50, size: int=10) -> MockEntity:
     '''Private: Creates fake line entity'''
+    # Handle line points
+    v = b - a
+    p, q = (
+        (Vector2(abs(v.x), 0), Vector2(0, abs(v.y)))
+        if (v.x < 0) ^ (v.y < 0) else
+        (Vector2(0, 0), Vector2(abs(v.x), abs(v.y))))
+    # Handle Padding
     size2 = size * 2
-    # Correct with Padding
-    width = int(max(a.x, b.x)) + size2 + 1
-    height = int(max(a.y, b.y)) + size2 + 1
-    a = a + Vector2(size) # Ensure no in-place modification
-    b = b + Vector2(size)
+    width = int(abs(v.x)) + size2 + 1
+    height = int(abs(v.y)) + size2 + 1
+    p += Vector2(size)
+    q += Vector2(size)
     # Create Mask
     mask = Mask((width, height))
     def set_line_bits(a: Vector2, b: Vector2) -> None:
@@ -232,11 +248,14 @@ def line_entity(
         for x, y in zip(xs, ys):
             x, y = int(x), int(y)
             mask.set_at((x, y))
-    offset = (b - a).rotate(90).normalize() * size
-    set_line_bits(a - offset, b - offset)
-    set_line_bits(a + offset, b + offset)
+    offset = v.rotate(90).normalize() * size
+    set_line_bits(p - offset, q - offset)
+    set_line_bits(p + offset, q + offset)
     return MockEntity(
-        rect=Rect(-size, -size, width, height),
+        rect=Rect(
+            int(min(a.x, b.x) - size), 
+            int(min(a.y, b.y) - size), 
+            width, height),
         mask=mask)
 
 def colliding_with_entities(this: GameEntity, others: [GameEntity]) -> bool:
@@ -324,7 +343,7 @@ def get_paths(hero: Character) -> [[Vector2]]:
 
 def best_path_value_from_position(
     paths: Tuple[Vector2], position: Vector2) -> [int, float]:
-    '''Public: Returns most probably path index & the path value of the position'''
+    '''Private: Returns most probably path index & the path value of the position'''
     values, losses = zip(*
         [path_value_from_position(path, position) for path in paths])
     path_index = argmin(losses)
@@ -366,7 +385,7 @@ def path_value_from_position(
 
 def position_from_path_value(
     path: [Vector2], value: float) -> Vector2:
-    '''Public: Find the position of the path value on a path'''
+    '''Private: Find the position of the path value on a path'''
     path_value = value
     ab_vectors = [b - a for a, b in pairwise(path)]
     ab_dists = [ab.length() for ab in ab_vectors]
@@ -381,19 +400,24 @@ def position_from_path_value(
     p = path[i] + scale_to_length(ab_vectors[i], p_proj)
     return p
 
+def most_probable_path_that_target_is_on(
+    hero: Character, target: Union[Vector2, GameEntity]) -> [int, float]:
+    if isinstance(target, GameEntity): target = target.position
+    return best_path_value_from_position(hero.paths, target)
+
 def position_towards_target_using_path(
     hero: Character, target: [Vector2, GameEntity]) -> Vector2:
     '''Public: Returns a position on the path towards target'''
     if isinstance(target, GameEntity): target = target.position
     return path_position_a_to_b(
-        hero.paths[hero.path_index], hero.position, target, towards=True)
+        hero.path, hero.position, target, towards=True)
 
 def position_away_from_target_using_path(
     hero: Character, target: [Vector2, GameEntity]) -> Vector2:
     '''Public: Returns a position on the path away from target'''
     if isinstance(target, GameEntity): target = target.position
     return path_position_a_to_b(
-        hero.paths[hero.path_index], hero.position, target, towards=False)
+        hero.path, hero.position, target, towards=False)
 
 def path_position_a_to_b(
     path: [Vector2], a: Vector2, b: Vector2, towards: bool,
@@ -409,13 +433,47 @@ def path_position_a_to_b(
     else:
         return b if towards else 2 * a - b
 
-# def can_switch_path(hero: Character):
-#     path = hero.paths[hero.path_index]
-#     path =
+def switchable_to_path(
+    hero: Character, path: Union[int, List[Vector2]]) -> bool:
+    '''Public: Checks if hero can switch to a path'''
+    if isinstance(path, int): path = hero.paths[path]
+    pv, loss = path_value_from_position(path, hero.position)
+    path_pos = position_from_path_value(path, pv)
+    return in_sight_with_target(hero, path_pos)
 
-def switch_to_path(hero: Character, path_index: int) -> None:
-    assert(0 <= path_index < len(hero.paths))
-    hero.path_index = path_index
+def switch_to_path(
+    hero: Character, path: Union[int, List[Vector2]]) -> None:
+    '''Public: Updates hero to switch to a path'''
+    if isinstance(path, int):
+        assert(0 <= path < len(hero.paths))
+        hero.path = deepcopy(hero.paths[path])
+    elif isinstance(path, list):
+        assert(len(path) and isinstance(path[0], Vector2))
+        hero.path = deepcopy(path)
+    else:
+        raise Exception
+
+def path_find_astar(
+    hero: Character, src: Union[Vector2, GameEntity], 
+    dest: Union[Vector2, GameEntity]) -> [Vector2]:
+    '''Public: Returns a list of positions from source to destination using AStar'''
+    if isinstance(src, GameEntity): src = src.position
+    if isinstance(dest, GameEntity): dest = dest.position
+    graph = hero.world.graph
+    nodes = graph.nodes.values()
+    find_closest_node = lambda pos: min(
+        nodes, key=lambda node: distance_between(pos, node.position))
+    src_node = find_closest_node(src)
+    dest_node = find_closest_node(dest)
+    conns = pathFindAStar(graph, src_node, dest_node)
+    path = [Vector2(conn.fromNode.position) for conn in conns]
+    path.append(Vector2(conns[-1].toNode.position))
+    return path
+
+def path_find_astar_from_hero_to_target(
+    hero: Character, dest: Union[Vector2, GameEntity]) -> [Vector2]:
+    '''Public: Returns a list of position from hero position to target using AStar'''
+    return path_find_astar(hero, hero.position, dest)
 
 ###  Utils  ###
 def compose(*fs):
@@ -440,6 +498,12 @@ def argmin(iterable, key=None):
 def linspace(start: float, stop: float, num: int) -> [float]:
     width = (stop - start) / (num - 1)
     return [start + width * i for i in range(num)]
+
+def get_first_of(iterable):
+    try:
+        return next(iter(iterable))
+    except StopIteration:
+        return None
 
 ###  Unused  ###
 # def projection_length_signed(a: Vector2, b: Vector2) -> float:
