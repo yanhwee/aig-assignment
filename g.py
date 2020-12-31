@@ -13,8 +13,9 @@ from State import State
 from Graph import pathFindAStar
 # from Character import Character
 
-class MockEntity(GameEntity):
+class MockEntity(pygame.sprite.Sprite):
     def __init__(self, **kwargs):
+        pygame.sprite.Sprite.__init__(self)
         for key, value in kwargs.items():
             setattr(self, key, value)
 
@@ -227,8 +228,12 @@ def get_friendly_base(hero: Character) -> GameEntity:
 #     return enemy
 
 def line_entity(
-    a: Vector2, b: Vector2, bits: int=50, size: int=10) -> MockEntity:
+    a: Vector2, b: Vector2, bits: int=100, size: int=15) -> MockEntity:
     '''Private: Creates fake line entity'''
+    if a == b:
+        return MockEntity(
+            rect=Rect(int(a.x), int(a.y), 1, 1),
+            mask=Mask((1, 1), fill=True))
     # Handle line points
     v = b - a
     p, q = (
