@@ -203,6 +203,17 @@ def get_nearest_enemy_projectile_that_is(
             knight=False, wizard=False, orc=False, tower=False, base=False),
         *predicates)
 
+def get_nearest_non_friendly_projectile_that_is(
+    hero: Character, 
+    *predicates: Callable[[GameEntity], bool]) -> Union[None, GameEntity]:
+    '''Public: Gets the nearest enemy projectile that fulfils all conditions'''
+    return get_nearest_entity_that_is(hero,
+        lambda entity: not friendly_between(entity, hero),
+        lambda entity: entity_type_of_any(
+            entity, arrow=True, fireball=True, archer=False, 
+            knight=False, wizard=False, orc=False, tower=False, base=False),
+        *predicates)
+
 def get_enemy_base(hero: Character) -> GameEntity:
     '''Public: Gets enemy base'''
     entity = get_first_of(get_entities_that_are(hero, 
