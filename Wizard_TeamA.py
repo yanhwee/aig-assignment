@@ -54,7 +54,7 @@ class Wizard_TeamA(Character):
             self.orderedSet.append(best)
         
         #print(self.orderedSet)
-
+        get_enemy_for_cluster_bomb(self)
         #level_up_stats = ["hp", "speed", "ranged damage", "ranged cooldown", "projectile range"]
         if self.can_level_up():
             self.level_up(self.orderedSet.pop(0))
@@ -92,12 +92,13 @@ class WizardStateSeeking_TeamA(State):
     def check_conditions(self):
 
         # healing takes priority over skirmishing 
-        if self.wizard.current_hp < 0.7 * (self.wizard.max_hp):
+        if self.wizard.current_hp < 0.6 * (self.wizard.max_hp):
             return "healing"
 
-        enemy = g.get_nearest_enemy_that_is(self.wizard,
-            lambda entity: g.within_range_of_target(self.wizard, entity, self.wizard.min_target_distance),
-            lambda entity: g.in_sight_with_preaimed_target(self.wizard, entity))
+        #enemy = g.get_nearest_enemy_that_is(self.wizard,
+        #    lambda entity: g.within_range_of_target(self.wizard, entity, self.wizard.min_target_distance),
+        #    lambda entity: g.in_sight_with_preaimed_target(self.wizard, entity))
+        enemy = get_enemy_for_cluster_bomb(self.wizard)
         if enemy:
             return 'skirmishing'
 
@@ -121,10 +122,10 @@ class WizardStateSkirmishing_TeamA(State):
 
     def do_actions(self):
         
-        self.enemy = g.get_nearest_enemy_that_is(self.wizard,
-            lambda entity: g.within_range_of_target(self.wizard, entity, self.wizard.min_target_distance),
-            lambda entity: g.in_sight_with_preaimed_target(self.wizard, entity))
-
+        #self.enemy = g.get_nearest_enemy_that_is(self.wizard,
+        #    lambda entity: g.within_range_of_target(self.wizard, entity, self.wizard.min_target_distance),
+        #    lambda entity: g.in_sight_with_preaimed_target(self.wizard, entity))
+        self.enemy  =  get_enemy_for_cluster_bomb(self.wizard)
     
         if self.enemy:
             preaim_position = g.preaim_entity(self.wizard, self.enemy)
@@ -192,7 +193,6 @@ class WizardStateHealing_TeamA(State):
             g.set_move_target(self.wizard, None)
             g.update_velocity(self.wizard)
 
-
         #heal while standing or moving 
         self.wizard.heal()
         
@@ -204,6 +204,65 @@ class WizardStateHealing_TeamA(State):
 
     def entry_actions(self):
         pass
+
+
+#cluster bomb code
+def get_nearest_entity_that_is(
+    hero: Character, 
+    *predicates):
+    '''Public: Gets the nearest entity that fulfils all conditions'''
+
+    return g.get_entities_that_are(hero, *predicates)
+        
+
+def get_nearest_enemy_that_is(
+    hero: Character, 
+    *predicates):
+    '''Public: Gets the nearest enemy that fulfils all conditions'''
+    return get_nearest_entity_that_is(hero,
+        lambda entity: g.entity_type_of_any(
+            entity, arrow=False, fireball=False, archer=True, 
+            knight=True, wizard=True, orc=True, tower=True, base=True),
+        lambda entity: g.entity_not_ko(entity),
+        *predicates)
+
+
+def get_enemy_for_cluster_bomb(character:Character):
+
+    #get all close enemies within the range
+    list_entities = get_nearest_enemy_that_is(character,
+    lambda entity: g.within_range_of_target(character, entity, character.min_target_distance),
+    lambda entity: g.enemy_between(entity, character))
+
+
+    _range = 48 #size of cluster explosion RADIUS
+    dict_entities= {}
+
+    for ent in list_entities:
+
+        #get all close allies within the explosion range
+        close_allies = get_nearest_enemy_that_is(ent,
+                        lambda entity: g.friendly_between(entity, ent),
+                        lambda entity: g.within_range_of_target(ent, entity, _range))
+        dict_entities[ent] = len(close_allies) - 1 #as helper funcs return all entities includeding its own
+    
+
+    '''
+        Improvements:
+        Some problems are that 
+        we cant determine exactly if the entity is close to the base or vice versa
+        As we take the ***positions*** rather than the rect/circles of the entities
+
+        For example, if the base length and width is larger than _range
+        then obviously no entity can be near it 
+
+        or we can use rect of the entity.position
+    '''
+    if dict_entities:
+        print(dict_entities)
+        return max(dict_entities, key=dict_entities.get)
+
+
 
 
 """
