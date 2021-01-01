@@ -190,6 +190,7 @@ class WizardStateHealing_TeamA(State):
         else:
             #Stand put at position
             g.set_move_target(self.wizard, None)
+            g.update_velocity(self.wizard)
 
 
         #heal while standing or moving 
