@@ -7,6 +7,9 @@ from Character import *
 from State import *
 import g
 
+DEFAULT_PATH = 3
+KNIGHT_SENSING_RADIUS = KNIGHT_MIN_TARGET_DISTANCE
+
 class Knight_TeamA(Character):
 
     def __init__(self, world, image, base, position):
@@ -47,7 +50,8 @@ class Knight_TeamA(Character):
         level_up_stats = ["hp", "speed", "melee damage", "melee cooldown"]
         if self.can_level_up():
             choice = randint(0, len(level_up_stats) - 1)
-            self.level_up(level_up_stats[choice])
+            #self.level_up(level_up_stats[choice])
+            self.level_up('hp')
 
    
 
@@ -64,8 +68,8 @@ class KnightStateSeeking_TeamA(State):
 
     def entry_actions(self):
 
-        if g.switchable_to_path(self.knight, 3):
-            g.switch_to_path(self.knight, 3)
+        if g.switchable_to_path(self.knight, DEFAULT_PATH):
+            g.switch_to_path(self.knight, DEFAULT_PATH)
         else:
             path_index, path_value = \
                 g.most_probable_path_that_target_is_on(
@@ -86,7 +90,7 @@ class KnightStateSeeking_TeamA(State):
 
         # check if opponent is in range
         enemy = g.get_nearest_enemy_that_is(self.knight,
-            lambda entity: g.within_range_of_target(self.knight, entity, 150),
+            lambda entity: g.within_range_of_target(self.knight, entity, KNIGHT_SENSING_RADIUS),
             lambda entity: g.in_sight_with_target(self.knight, entity))
 
         if enemy:
@@ -110,8 +114,9 @@ class KnightStateAttacking_TeamA(State):
 
         #check enemy
         enemy = g.get_nearest_enemy_that_is(self.knight,
-            lambda entity: g.within_range_of_target(self.knight, entity, 150),
+            lambda entity: g.within_range_of_target(self.knight, entity, KNIGHT_SENSING_RADIUS),
             lambda entity: g.in_sight_with_target(self.knight, entity))
+
         if enemy:
             self.knight.target = enemy
             g.set_move_target(self.knight,enemy)
@@ -128,7 +133,7 @@ class KnightStateAttacking_TeamA(State):
 
         # target is gone
         enemy = g.get_nearest_enemy_that_is(self.knight,
-            lambda entity: g.within_range_of_target(self.knight, entity, 150),
+            lambda entity: g.within_range_of_target(self.knight, entity, KNIGHT_SENSING_RADIUS),
             lambda entity: g.in_sight_with_target(self.knight, entity))
         if enemy is None:
             return "seeking"
@@ -177,10 +182,10 @@ class KnightStateRetreating_TeamA(State):
 
         #retreat
         enemy = g.get_nearest_enemy_that_is(self.knight,
-            lambda entity: g.within_range_of_target(self.knight, entity, 150),
+            lambda entity: g.within_range_of_target(self.knight, entity, KNIGHT_SENSING_RADIUS),
             lambda entity: g.in_sight_with_target(self.knight, entity))
         enemy_projectile = g.get_nearest_non_friendly_projectile_that_is(self.knight,
-            lambda entity: g.within_range_of_target(self.knight,entity, 150),
+            lambda entity: g.within_range_of_target(self.knight,entity, KNIGHT_SENSING_RADIUS),
             lambda entity: g.in_sight_with_target(self.knight,entity))
         if enemy_projectile:
             path_pos = g.position_away_from_target_using_path(self.knight,enemy_projectile)
@@ -194,6 +199,11 @@ class KnightStateRetreating_TeamA(State):
 
     def check_conditions(self):
 
+        #check if retreat until home base
+        # friendly_base = g.get_friendly_base(self.knight)
+        # if g.touching_target(self.knight,friendly_base):
+        #     return "attacking"
+        
         #check if hp is full
         if self.knight.current_hp != self.knight.max_hp:
             return "healing"
@@ -220,7 +230,7 @@ class KnightStateHealing_TeamA(State):
 
         # target is gone
         enemy = g.get_nearest_enemy_that_is(self.knight,
-            lambda entity: g.within_range_of_target(self.knight, entity, 150),
+            lambda entity: g.within_range_of_target(self.knight, entity, KNIGHT_SENSING_RADIUS),
             lambda entity: g.in_sight_with_target(self.knight, entity))
         if enemy:
             return "retreating"
