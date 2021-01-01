@@ -259,7 +259,7 @@ def get_enemy_for_cluster_bomb(character:Character):
         or we can use rect of the entity.position
     '''
     if dict_entities:
-        print(dict_entities)
+        #print(dict_entities)
         return max(dict_entities, key=dict_entities.get)
 
 
