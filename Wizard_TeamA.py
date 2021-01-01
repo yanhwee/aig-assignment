@@ -7,6 +7,8 @@ from Character import *
 from State import *
 import g
 
+DEFAULT_PATH = 3
+
 class Wizard_TeamA(Character):
 
     def __init__(self, world, image, projectile_image, base, position, explosion_image = None):
@@ -32,6 +34,8 @@ class Wizard_TeamA(Character):
 
         self.brain.set_state("seeking")
 
+        self.orderedSet = []
+
     def render(self, surface):
 
         Character.render(self, surface)
@@ -43,12 +47,17 @@ class Wizard_TeamA(Character):
 
         best = get_best_score(self, 
         lambda entity:health_level_up_evaluate(entity),
-        lambda entity:damage_level_up_evaluate(entity))
+        lambda entity:damage_level_up_evaluate(entity),
+        lambda entity:speed_level_up_evaluate(entity))
 
+        if best not in self.orderedSet:
+            self.orderedSet.append(best)
         
-        level_up_stats = ["hp", "speed", "ranged damage", "ranged cooldown", "projectile range"]
+        #print(self.orderedSet)
+
+        #level_up_stats = ["hp", "speed", "ranged damage", "ranged cooldown", "projectile range"]
         if self.can_level_up():
-            self.level_up(best)
+            self.level_up(self.orderedSet.pop(0))
 
                
 
@@ -63,8 +72,8 @@ class WizardStateSeeking_TeamA(State):
 
     def entry_actions(self):
 
-        if g.switchable_to_path(self.wizard, 3):
-            g.switch_to_path(self.wizard, 3)
+        if g.switchable_to_path(self.wizard, DEFAULT_PATH):
+            g.switch_to_path(self.wizard, DEFAULT_PATH)
         else:
             path_index, path_value = \
                 g.most_probable_path_that_target_is_on(
@@ -83,11 +92,11 @@ class WizardStateSeeking_TeamA(State):
     def check_conditions(self):
 
         # healing takes priority over skirmishing 
-        if self.wizard.current_hp < 0.5 * (self.wizard.max_hp):
+        if self.wizard.current_hp < 0.7 * (self.wizard.max_hp):
             return "healing"
 
         enemy = g.get_nearest_enemy_that_is(self.wizard,
-            lambda entity: g.within_range_of_target(self.wizard, entity),
+            lambda entity: g.within_range_of_target(self.wizard, entity, self.wizard.min_target_distance),
             lambda entity: g.in_sight_with_preaimed_target(self.wizard, entity))
         if enemy:
             return 'skirmishing'
@@ -113,7 +122,7 @@ class WizardStateSkirmishing_TeamA(State):
     def do_actions(self):
         
         self.enemy = g.get_nearest_enemy_that_is(self.wizard,
-            lambda entity: g.within_range_of_target(self.wizard, entity),
+            lambda entity: g.within_range_of_target(self.wizard, entity, self.wizard.min_target_distance),
             lambda entity: g.in_sight_with_preaimed_target(self.wizard, entity))
 
     
@@ -171,7 +180,7 @@ class WizardStateHealing_TeamA(State):
 
         #Run away and heal if the enemy is close to the wizard
         enemy = g.get_nearest_enemy_that_is(self.wizard,
-            lambda entity: g.within_range_of_target(self.wizard, entity),
+            lambda entity: g.within_range_of_target(self.wizard, entity, self.wizard.min_target_distance),
             lambda entity: g.in_sight_with_preaimed_target(self.wizard, entity))
 
         if enemy:
@@ -180,7 +189,8 @@ class WizardStateHealing_TeamA(State):
             g.update_velocity(self.wizard)
         else:
             #Stand put at position
-            self.wizard.velocity = Vector2(0,0)
+            g.set_move_target(self.wizard, None)
+            g.update_velocity(self.wizard)
 
 
         #heal while standing or moving 
@@ -227,6 +237,24 @@ class character_feature(object):
         return min(1, rating)
 
 
+
+    def get_rating_speed(character:Character)->int:
+
+        '''
+            To get a number between 0 and 1
+            we used speed over dist which gives us 1/time
+            the closer time is to 1 second the shorter it takes
+            for the bot to reach the enemy base
+        
+        '''
+
+        enemy_base = g.get_enemy_base(character)
+        dist = g.distance_between(character.position, enemy_base.position)
+        rating = (character.maxSpeed/dist)
+        #print(rating)
+        return min(1, rating)
+
+
 def health_level_up_evaluate(character:Character) -> int:
     '''
         How healthy is the bot?
@@ -267,6 +295,12 @@ def damage_level_up_evaluate(character:Character) -> int:
 
     desire = (tweaker * rating_health * (1-rating_damage))/dist_normalized
     return [min(1,desire), 'ranged damage']
+
+
+def speed_level_up_evaluate(character:Character)->int:
+    tweaker = 0.15
+    desire = tweaker * (1- character_feature.get_rating_speed(character))
+    return [min(1,desire), 'speed']
 
 
 '''Returns a string after computing the max score'''
