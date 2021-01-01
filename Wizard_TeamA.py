@@ -96,7 +96,7 @@ class WizardStateSeeking_TeamA(State):
             return "healing"
 
         enemy = g.get_nearest_enemy_that_is(self.wizard,
-            lambda entity: g.within_range_of_target(self.wizard, entity),
+            lambda entity: g.within_range_of_target(self.wizard, entity, self.wizard.min_target_distance),
             lambda entity: g.in_sight_with_preaimed_target(self.wizard, entity))
         if enemy:
             return 'skirmishing'
@@ -122,7 +122,7 @@ class WizardStateSkirmishing_TeamA(State):
     def do_actions(self):
         
         self.enemy = g.get_nearest_enemy_that_is(self.wizard,
-            lambda entity: g.within_range_of_target(self.wizard, entity),
+            lambda entity: g.within_range_of_target(self.wizard, entity, self.wizard.min_target_distance),
             lambda entity: g.in_sight_with_preaimed_target(self.wizard, entity))
 
     
@@ -180,7 +180,7 @@ class WizardStateHealing_TeamA(State):
 
         #Run away and heal if the enemy is close to the wizard
         enemy = g.get_nearest_enemy_that_is(self.wizard,
-            lambda entity: g.within_range_of_target(self.wizard, entity),
+            lambda entity: g.within_range_of_target(self.wizard, entity, self.wizard.min_target_distance),
             lambda entity: g.in_sight_with_preaimed_target(self.wizard, entity))
 
         if enemy:
