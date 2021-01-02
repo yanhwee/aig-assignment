@@ -59,7 +59,6 @@ class Wizard_TeamA(Character):
         if self.can_level_up():
             self.level_up(self.orderedSet.pop(0))
 
-               
 
 
 
@@ -206,6 +205,49 @@ class WizardStateHealing_TeamA(State):
         pass
 
 
+
+
+
+def within_collision_range_of_target(
+    hero: Character, 
+    target, 
+    radius) -> bool:
+    return within_range_between_positions(hero, target, radius)
+
+def within_range_between_positions(
+    hero, target, radius) -> bool:
+
+
+    # we just use the explosion radius so as to comabt 
+    # so as to fix larger entities from having more collisions
+    # as the wizard would always aim at the centre of the entity
+    hero_radius = radius 
+
+    target_radius = get_circumCircle_radius(target)
+    dist_between_targets = g.distance_between(hero.position, target.position)
+
+    if dist_between_targets <= (hero_radius + target_radius):
+        return True
+
+    return False
+
+
+def get_circumCircle_radius(entity:GameEntity):
+
+    '''
+        Since we have no radius for rectangles and squares
+        we can get them by using the formula
+
+        diagonal of the subject is = squareRoot (length**2 plus width**2)
+        r = diagonal of the subject over 2
+    
+    '''
+    diagonal = sqrt(entity.image.get_width()**2 + entity.image.get_height() ** 2)
+    radius = diagonal/2
+
+
+    return radius
+
 #cluster bomb code
 def get_nearest_entity_that_is(
     hero: Character, 
@@ -243,23 +285,11 @@ def get_enemy_for_cluster_bomb(character:Character):
         #get all close allies within the explosion range
         close_allies = get_nearest_enemy_that_is(ent,
                         lambda entity: g.friendly_between(entity, ent),
-                        lambda entity: g.within_range_of_target(ent, entity, _range))
+                        lambda entity: within_collision_range_of_target(ent, entity, _range))
         dict_entities[ent] = len(close_allies) - 1 #as helper funcs return all entities includeding its own
     
-
-    '''
-        Improvements:
-        Some problems are that 
-        we cant determine exactly if the entity is close to the base or vice versa
-        As we take the ***positions*** rather than the rect/circles of the entities
-
-        For example, if the base length and width is larger than _range
-        then obviously no entity can be near it 
-
-        or we can use rect of the entity.position
-    '''
     if dict_entities:
-        #print(dict_entities)
+        #rint(dict_entities)
         return max(dict_entities, key=dict_entities.get)
 
 
