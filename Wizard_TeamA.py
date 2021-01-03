@@ -227,13 +227,16 @@ class WizardStateHealing_TeamA(State):
         self.wizard = wizard
 
     def do_actions(self):
-        self.enemy = get_enemy_for_cluster_bomb(self.wizard)
 
-        if self.enemy is None:
-            enemy_base = g.get_enemy_base(self.wizard)
-            path_pos = g.position_towards_target_using_path(self.wizard, enemy_base)
-            g.set_move_target(self.wizard, path_pos)
-            g.update_velocity(self.wizard)
+        #self.enemy = get_enemy_for_cluster_bomb(self.wizard)
+
+        #if self.enemy is None:
+        #    enemy_base = g.get_enemy_base(self.wizard)
+        #    if g.distance_between(self.wizard.position, enemy_base.position) > enemy_base.min_target_distance + 50:
+                
+        #        path_pos = g.position_towards_target_using_path(self.wizard, enemy_base)
+        #        g.set_move_target(self.wizard, path_pos)
+        #        g.update_velocity(self.wizard)
         print("healing")
         #Run away and heal if the enemy is close to the wizard
         #heal while standing or moving 
@@ -241,14 +244,15 @@ class WizardStateHealing_TeamA(State):
         
     def check_conditions(self):
 
-        if self.wizard.current_hp >= self.wizard.max_hp:
-            return "seeking"
-        
         self.enemy = get_enemy_for_cluster_bomb(self.wizard)
         if self.enemy:
             return "retreating"
+
+        elif self.enemy is None:
+            return "seeking"
         
-       
+        if self.wizard.current_hp >= self.wizard.max_hp:
+            return "seeking"
 
         return None
 
