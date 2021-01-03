@@ -187,11 +187,12 @@ class WizardStateRetreating_TeamA(State):
         #    lambda entity: g.within_range_of_target(self.wizard, entity),
         #    lambda entity: g.in_sight_with_preaimed_target(self.wizard, entity))
 
-        if self.wizard.current_hp < 0.8 * (self.wizard.max_hp):
-            return "healing"
-
+       
         if self.enemy:
             return "skirmishing"
+
+        if self.wizard.current_hp < 0.8 * (self.wizard.max_hp):
+            return "healing"
 
         if self.enemy is None:
             return 'seeking'
