@@ -322,8 +322,9 @@ def get_enemy_for_cluster_bomb(character:Character):
 
     #get all close enemies within the range
     list_entities = get_entities_based_on_condition(character,
-    lambda entity: g.within_range_of_target(character, entity, character.min_target_distance),
-    lambda entity: g.enemy_between(entity, character))
+    lambda entity: g.within_range_of_target(character, entity, character.projectile_range),
+    lambda entity: g.enemy_between(entity, character),
+    lambda entity: g.in_sight_with_target(character, entity))
 
 
     '''
