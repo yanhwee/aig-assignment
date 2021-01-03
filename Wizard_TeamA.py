@@ -26,11 +26,13 @@ class Wizard_TeamA(Character):
         attacking_state = WizardStateSkirmishing_TeamA(self)
         ko_state = WizardStateKO_TeamA(self)
         healing_state = WizardStateHealing_TeamA(self)
+        retreating_state = WizardStateRetreating_TeamA(self)
 
         self.brain.add_state(seeking_state)
         self.brain.add_state(attacking_state)
         self.brain.add_state(ko_state)
         self.brain.add_state(healing_state)
+        self.brain.add_state(retreating_state)
 
         self.brain.set_state("seeking")
 
@@ -54,7 +56,6 @@ class Wizard_TeamA(Character):
             self.orderedSet.append(best)
         
         #print(self.orderedSet)
-        get_enemy_for_cluster_bomb(self)
         #level_up_stats = ["hp", "speed", "ranged damage", "ranged cooldown", "projectile range"]
         if self.can_level_up():
             self.level_up(self.orderedSet.pop(0))
@@ -91,12 +92,9 @@ class WizardStateSeeking_TeamA(State):
     def check_conditions(self):
 
         # healing takes priority over skirmishing 
-        if self.wizard.current_hp < 0.6 * (self.wizard.max_hp):
+        if self.wizard.current_hp < 0.8 * (self.wizard.max_hp):
             return "healing"
 
-        #enemy = g.get_nearest_enemy_that_is(self.wizard,
-        #    lambda entity: g.within_range_of_target(self.wizard, entity, self.wizard.min_target_distance),
-        #    lambda entity: g.in_sight_with_preaimed_target(self.wizard, entity))
         enemy = get_enemy_for_cluster_bomb(self.wizard)
         if enemy:
             return 'skirmishing'
@@ -128,9 +126,55 @@ class WizardStateSkirmishing_TeamA(State):
     
         if self.enemy:
             preaim_position = g.preaim_entity(self.wizard, self.enemy)
-
             #send the explosive to that direction
             self.wizard.ranged_attack(preaim_position, self.wizard.explosion_image)
+            #path_pos = g.position_away_from_target_using_path(self.wizard, self.enemy)
+            #g.set_move_target(self.wizard, path_pos)
+            #g.update_velocity(self.wizard)
+
+
+    def check_conditions(self):
+
+        # target is within sight AND is within the range of the target
+        #enemy = g.get_nearest_enemy_that_is(self.wizard,
+        #    lambda entity: g.within_range_of_target(self.wizard, entity),
+        #    lambda entity: g.in_sight_with_preaimed_target(self.wizard, entity))
+
+        if self.wizard.current_hp < 0.8 * (self.wizard.max_hp):
+            return "healing"
+
+        if self.enemy:
+            return "retreating"
+
+        if self.enemy is None:
+            return 'seeking'
+
+        return None
+            
+    def exit_actions(self):
+        self.enemy = None
+
+
+class WizardStateRetreating_TeamA(State):
+
+    def __init__(self, wizard):
+
+        State.__init__(self, "retreating")
+        self.wizard = wizard
+        self.enemy = None
+
+
+    def entry_actions(self):
+        pass
+
+    def do_actions(self):
+        
+        #self.enemy = g.get_nearest_enemy_that_is(self.wizard,
+        #    lambda entity: g.within_range_of_target(self.wizard, entity, self.wizard.min_target_distance),
+        #    lambda entity: g.in_sight_with_preaimed_target(self.wizard, entity))
+        self.enemy  =  get_enemy_for_cluster_bomb(self.wizard)
+    
+        if self.enemy:
             path_pos = g.position_away_from_target_using_path(self.wizard, self.enemy)
             g.set_move_target(self.wizard, path_pos)
             g.update_velocity(self.wizard)
@@ -142,6 +186,12 @@ class WizardStateSkirmishing_TeamA(State):
         #enemy = g.get_nearest_enemy_that_is(self.wizard,
         #    lambda entity: g.within_range_of_target(self.wizard, entity),
         #    lambda entity: g.in_sight_with_preaimed_target(self.wizard, entity))
+
+        if self.wizard.current_hp < 0.7 *(self.wizard.max_hp):
+            return "healing"
+
+        if self.enemy:
+            return "skirmishing"
 
         if self.enemy is None:
             return 'seeking'
@@ -177,21 +227,15 @@ class WizardStateHealing_TeamA(State):
         self.wizard = wizard
 
     def do_actions(self):
+        self.enemy = get_enemy_for_cluster_bomb(self.wizard)
 
-        #Run away and heal if the enemy is close to the wizard
-        enemy = g.get_nearest_enemy_that_is(self.wizard,
-            lambda entity: g.within_range_of_target(self.wizard, entity, self.wizard.min_target_distance),
-            lambda entity: g.in_sight_with_preaimed_target(self.wizard, entity))
-
-        if enemy:
-            path_pos = g.position_away_from_target_using_path(self.wizard, enemy)
+        if self.enemy is None:
+            enemy_base = g.get_enemy_base(self.wizard)
+            path_pos = g.position_towards_target_using_path(self.wizard, enemy_base)
             g.set_move_target(self.wizard, path_pos)
             g.update_velocity(self.wizard)
-        else:
-            #Stand put at position
-            g.set_move_target(self.wizard, None)
-            g.update_velocity(self.wizard)
-
+        print("healing")
+        #Run away and heal if the enemy is close to the wizard
         #heal while standing or moving 
         self.wizard.heal()
         
@@ -199,10 +243,20 @@ class WizardStateHealing_TeamA(State):
 
         if self.wizard.current_hp >= self.wizard.max_hp:
             return "seeking"
+        
+        self.enemy = get_enemy_for_cluster_bomb(self.wizard)
+        if self.enemy:
+            return "retreating"
+        
+       
+
         return None
 
     def entry_actions(self):
         pass
+
+    def exit_actions(self):
+        self.enemy = None
 
 
 
@@ -277,7 +331,13 @@ def get_enemy_for_cluster_bomb(character:Character):
     lambda entity: g.enemy_between(entity, character))
 
 
-    _range = 48 #size of cluster explosion RADIUS
+    '''
+        _range = size of the cluster explosion radius
+        note that this is the inner-radius of the square
+        for eg a circle in a square that fits perfectly
+    
+    '''
+    _range = 48 
     dict_entities= {}
 
     for ent in list_entities:
@@ -289,7 +349,7 @@ def get_enemy_for_cluster_bomb(character:Character):
         dict_entities[ent] = len(close_allies) - 1 #as helper funcs return all entities includeding its own
     
     if dict_entities:
-        #rint(dict_entities)
+        #print(dict_entities)
         return max(dict_entities, key=dict_entities.get)
 
 
