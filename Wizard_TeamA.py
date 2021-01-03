@@ -187,7 +187,7 @@ class WizardStateRetreating_TeamA(State):
         #    lambda entity: g.within_range_of_target(self.wizard, entity),
         #    lambda entity: g.in_sight_with_preaimed_target(self.wizard, entity))
 
-        if self.wizard.current_hp < 0.7 *(self.wizard.max_hp):
+        if self.wizard.current_hp < 0.8 * (self.wizard.max_hp):
             return "healing"
 
         if self.enemy:
@@ -228,18 +228,7 @@ class WizardStateHealing_TeamA(State):
 
     def do_actions(self):
 
-        #self.enemy = get_enemy_for_cluster_bomb(self.wizard)
-
-        #if self.enemy is None:
-        #    enemy_base = g.get_enemy_base(self.wizard)
-        #    if g.distance_between(self.wizard.position, enemy_base.position) > enemy_base.min_target_distance + 50:
-                
-        #        path_pos = g.position_towards_target_using_path(self.wizard, enemy_base)
-        #        g.set_move_target(self.wizard, path_pos)
-        #        g.update_velocity(self.wizard)
-        print("healing")
-        #Run away and heal if the enemy is close to the wizard
-        #heal while standing or moving 
+        #print("healing")
         self.wizard.heal()
         
     def check_conditions(self):
@@ -251,9 +240,6 @@ class WizardStateHealing_TeamA(State):
         elif self.enemy is None:
             return "seeking"
         
-        if self.wizard.current_hp >= self.wizard.max_hp:
-            return "seeking"
-
         return None
 
     def entry_actions(self):
@@ -314,8 +300,12 @@ def get_nearest_entity_that_is(
 
     return g.get_entities_that_are(hero, *predicates)
         
+'''
+    Pass in predicates,
+    Mostly to judge if the entities are friendly or hostile
 
-def get_nearest_enemy_that_is(
+'''
+def get_entities_based_on_condition(
     hero: Character, 
     *predicates):
     '''Public: Gets the nearest enemy that fulfils all conditions'''
@@ -330,7 +320,7 @@ def get_nearest_enemy_that_is(
 def get_enemy_for_cluster_bomb(character:Character):
 
     #get all close enemies within the range
-    list_entities = get_nearest_enemy_that_is(character,
+    list_entities = get_entities_based_on_condition(character,
     lambda entity: g.within_range_of_target(character, entity, character.min_target_distance),
     lambda entity: g.enemy_between(entity, character))
 
@@ -347,7 +337,7 @@ def get_enemy_for_cluster_bomb(character:Character):
     for ent in list_entities:
 
         #get all close allies within the explosion range
-        close_allies = get_nearest_enemy_that_is(ent,
+        close_allies = get_entities_based_on_condition(ent,
                         lambda entity: g.friendly_between(entity, ent),
                         lambda entity: within_collision_range_of_target(ent, entity, _range))
         dict_entities[ent] = len(close_allies) - 1 #as helper funcs return all entities includeding its own
