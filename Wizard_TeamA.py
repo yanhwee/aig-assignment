@@ -261,7 +261,7 @@ def within_collision_range_of_target(
     radius) -> bool:
 
     # we just use the explosion radius so as to comabt 
-    # to fix larger entities from having more collisions
+    # larger entities from having more collisions
     # as the wizard would always aim at the centre of the entity
     hero_radius = radius 
 
