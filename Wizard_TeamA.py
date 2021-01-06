@@ -128,12 +128,16 @@ class WizardStateSkirmishing_TeamA(State):
         self.enemy  =  get_enemy_for_cluster_bomb(self.wizard)
     
         if self.enemy:
-            preaim_position = g.preaim_entity(self.wizard, self.enemy)
-            #send the explosive to that direction
-            self.wizard.ranged_attack(preaim_position, self.wizard.explosion_image)
-            #path_pos = g.position_away_from_target_using_path(self.wizard, self.enemy)
-            #g.set_move_target(self.wizard, path_pos)
-            #g.update_velocity(self.wizard)
+
+            if self.enemy.name == "base":
+                self.wizard.ranged_attack(self.enemy.spawn_position, self.wizard.explosion_image)
+            else:
+                preaim_position = g.preaim_entity(self.wizard, self.enemy)
+                #send the explosive to that direction
+                self.wizard.ranged_attack(preaim_position, self.wizard.explosion_image)
+                #path_pos = g.position_away_from_target_using_path(self.wizard, self.enemy)
+                #g.set_move_target(self.wizard, path_pos)
+                #g.update_velocity(self.wizard)
 
 
     def check_conditions(self):
