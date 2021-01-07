@@ -121,7 +121,11 @@ def calculate_preaim_collision(
     a = v.magnitude_squared() - s ** 2
     b = 2 * p.dot(v)
     c = p.magnitude_squared()
-    t = (-b - sqrt(b ** 2 - 4 * a * c)) / (2 * a)  # Seems Oddly Familiar
+    d = b ** 2 - 4 * a * c
+    if d < 0:
+        print('WARN: No solution to find collision!')
+        return p2
+    t = (-b - sqrt(d)) / (2 * a)  # Seems Oddly Familiar
     x = p2 + t * v
     return x
 
