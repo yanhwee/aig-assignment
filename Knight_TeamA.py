@@ -9,6 +9,9 @@ import g
 
 DEFAULT_PATH = 3
 KNIGHT_SENSING_RADIUS = KNIGHT_MIN_TARGET_DISTANCE
+KNIGHT_HEALING_THRESHOLD_LEVEL1 = 50
+KNIGHT_HEALING_THRESHOLD_LEVEL2 = 65
+KNIGHT_HEALING_THRESHOLD = KNIGHT_HEALING_THRESHOLD_LEVEL1
 
 class Knight_TeamA(Character):
 
@@ -18,7 +21,6 @@ class Knight_TeamA(Character):
 
         self.base = base
         self.position = position
-        self.target = None #temp fix
 
         g.init_hero(self)
 
@@ -26,13 +28,11 @@ class Knight_TeamA(Character):
         seeking_state = KnightStateSeeking_TeamA(self)
         attacking_state = KnightStateAttacking_TeamA(self)
         ko_state = KnightStateKO_TeamA(self)
-        retreating_state = KnightStateRetreating_TeamA(self)
         healing_state = KnightStateHealing_TeamA(self)
 
         self.brain.add_state(seeking_state)
         self.brain.add_state(attacking_state)
         self.brain.add_state(ko_state)
-        self.brain.add_state(retreating_state)
         self.brain.add_state(healing_state)
 
         self.brain.set_state("seeking")
@@ -46,14 +46,12 @@ class Knight_TeamA(Character):
     def process(self, time_passed):
         
         Character.process(self, time_passed)
-
-        level_up_stats = ["hp", "speed", "melee damage", "melee cooldown"]
+        level = 0
         if self.can_level_up():
-            choice = randint(0, len(level_up_stats) - 1)
-            #self.level_up(level_up_stats[choice])
-            self.level_up('hp')
-
-   
+            level += 1
+            if level >= 2:
+                KNIGHT_HEALING_THRESHOLD = KNIGHT_HEALING_THRESHOLD_LEVEL2
+            self.level_up('healing') 
 
 
 class KnightStateSeeking_TeamA(State):
@@ -62,9 +60,6 @@ class KnightStateSeeking_TeamA(State):
 
         State.__init__(self, "seeking")
         self.knight = knight
-
-        #self.knight.path_graph = self.knight.world.paths[randint(0, len(self.knight.world.paths)-1)]
-
 
     def entry_actions(self):
 
@@ -76,11 +71,13 @@ class KnightStateSeeking_TeamA(State):
                     self.knight, self.knight)
             g.switch_to_path(self.knight, path_index)
 
-    def do_actions(self): #rush
+    def do_actions(self): 
+        #Move towards base
         enemy_base = g.get_enemy_base(self.knight)
         path_pos = g.position_towards_target_using_path(self.knight,enemy_base)
         g.set_move_target(self.knight,path_pos)
         g.update_velocity(self.knight)
+
 
     def check_conditions(self):
        
@@ -88,7 +85,7 @@ class KnightStateSeeking_TeamA(State):
         if self.knight.current_hp != self.knight.max_hp:
             return "healing"
 
-        # check if opponent is in range
+        # check if enemy is in range
         enemy = g.get_nearest_enemy_that_is(self.knight,
             lambda entity: g.within_range_of_target(self.knight, entity, KNIGHT_SENSING_RADIUS),
             lambda entity: g.in_sight_with_target(self.knight, entity))
@@ -112,37 +109,44 @@ class KnightStateAttacking_TeamA(State):
     
     def do_actions(self):
 
-        #check enemy
-        enemy = g.get_nearest_enemy_that_is(self.knight,
-            lambda entity: g.within_range_of_target(self.knight, entity, KNIGHT_SENSING_RADIUS),
-            lambda entity: g.in_sight_with_target(self.knight, entity))
+        # check enemy base
+        enemy_base = g.get_enemy_base(self.knight)
 
-        if enemy:
-            self.knight.target = enemy
-            g.set_move_target(self.knight,enemy)
-            # colliding with target
-            if g.touching_target(self.knight,enemy):
-                g.set_move_target(self.knight,None)
-                self.knight.melee_attack(enemy)
+        # if knight touches the enemy base
+        if g.touching_target(self.knight, enemy_base):
+            attack(self.knight,enemy_base)
+        # target and move to enemy base if within range
+        elif g.within_range_of_target(self.knight,enemy_base,KNIGHT_SENSING_RADIUS):
+            g.set_move_target(self.knight,enemy_base)
+            g.update_velocity(self.knight)
+        else:
+            #check if other enemies exists 
+            enemy = g.get_nearest_enemy_that_is(self.knight,
+                lambda entity: g.within_range_of_target(self.knight, entity, KNIGHT_SENSING_RADIUS),
+                lambda entity: g.in_sight_with_target(self.knight, entity))
 
-        g.update_velocity(self.knight)
-
-
+            if enemy:
+                g.set_move_target(self.knight,enemy)
+                g.update_velocity(self.knight)
+                # colliding with target
+                if g.touching_target(self.knight,enemy):
+                    attack(self.knight,enemy)
 
     def check_conditions(self):
 
-        # target is gone
         enemy = g.get_nearest_enemy_that_is(self.knight,
             lambda entity: g.within_range_of_target(self.knight, entity, KNIGHT_SENSING_RADIUS),
             lambda entity: g.in_sight_with_target(self.knight, entity))
+        
+        # target is gone        
         if enemy is None:
             return "seeking"
         
-        if self.knight.current_hp/self.knight.max_hp *100 <= 30:
-            return "retreating"
+        # if knight's health below a certain threshold, heal
+        if self.knight.current_hp/self.knight.max_hp *100 <= KNIGHT_HEALING_THRESHOLD:
+            return "healing"
 
         return None
-
 
 
 class KnightStateKO_TeamA(State):
@@ -166,50 +170,6 @@ class KnightStateKO_TeamA(State):
         return g.ko_check_conditions(self.knight, 'seeking')
 
 
-
-class KnightStateRetreating_TeamA(State):
-
-    def __init__(self, knight):
-
-        State.__init__(self,"retreating")
-        self.knight = knight
-
-    def entry_actions(self):
-        
-        return None
-
-    def do_actions(self):
-
-        #retreat
-        enemy = g.get_nearest_enemy_that_is(self.knight,
-            lambda entity: g.within_range_of_target(self.knight, entity, KNIGHT_SENSING_RADIUS),
-            lambda entity: g.in_sight_with_target(self.knight, entity))
-        enemy_projectile = g.get_nearest_non_friendly_projectile_that_is(self.knight,
-            lambda entity: g.within_range_of_target(self.knight,entity, KNIGHT_SENSING_RADIUS),
-            lambda entity: g.in_sight_with_target(self.knight,entity))
-        if enemy_projectile:
-            path_pos = g.position_away_from_target_using_path(self.knight,enemy_projectile)
-            g.set_move_target(self.knight, path_pos)
-        elif enemy:
-            path_pos = g.position_away_from_target_using_path(self.knight,enemy)
-            g.set_move_target(self.knight, path_pos)
-        g.update_velocity(self.knight)
-
-
-
-    def check_conditions(self):
-
-        #check if retreat until home base
-        # friendly_base = g.get_friendly_base(self.knight)
-        # if g.touching_target(self.knight,friendly_base):
-        #     return "attacking"
-        
-        #check if hp is full
-        if self.knight.current_hp != self.knight.max_hp:
-            return "healing"
-        else:
-            return "seeking"
-
 class KnightStateHealing_TeamA(State):
 
     def __init__(self, knight):
@@ -222,18 +182,37 @@ class KnightStateHealing_TeamA(State):
         return None
 
     def do_actions(self):
+
+        #check if there is enemy
+        enemy = g.get_nearest_enemy_that_is(self.knight,
+            lambda entity: g.within_range_of_target(self.knight, entity, KNIGHT_SENSING_RADIUS),
+            lambda entity: g.in_sight_with_target(self.knight, entity))
+
+        #Set target to none to stand on the spot
+        if enemy:
+            g.set_move_target(self.knight,None)
+            g.update_velocity(self.knight)
+        
         #heal
         self.knight.heal()
 
 
     def check_conditions(self):
 
-        # target is gone
         enemy = g.get_nearest_enemy_that_is(self.knight,
             lambda entity: g.within_range_of_target(self.knight, entity, KNIGHT_SENSING_RADIUS),
             lambda entity: g.in_sight_with_target(self.knight, entity))
-        if enemy:
-            return "retreating"
-        else:
-            return "seeking"
 
+        # target is gone
+        if enemy is None:
+            return "seeking"
+        
+        # if knight's health above a certain threshold, attack
+        if self.knight.current_hp/self.knight.max_hp *100 > KNIGHT_HEALING_THRESHOLD:
+            return "attacking"
+
+
+def attack(hero:Character, enemy:GameEntity):
+    g.set_move_target(hero, None)
+    hero.melee_attack(enemy)
+    g.update_velocity(hero)
