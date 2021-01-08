@@ -285,11 +285,12 @@ def colliding_with_entities(this: GameEntity, others: [GameEntity]) -> bool:
     return bool(collided_entities)
 
 def in_sight_with_target(
-    hero: Character, target: Union[Vector2, GameEntity]) -> bool:
+    hero: Character, target: Union[Vector2, GameEntity], 
+    bits: int=100, size: int=15) -> bool:
     '''Public: Checks if there is no obstacles between hero and target'''
     if isinstance(target, GameEntity): target = target.position
     return not colliding_with_entities(
-        line_entity(hero.position, target),
+        line_entity(hero.position, target, bits, size),
         hero.world.obstacles)
 
 def in_sight_with_preaimed_target(
@@ -459,7 +460,7 @@ def switchable_to_path(
     if isinstance(path, int): path = hero.paths[path]
     pv, loss = path_value_from_position(path, hero.position)
     path_pos = position_from_path_value(path, pv)
-    return in_sight_with_target(hero, path_pos)
+    return in_sight_with_target(hero, path_pos, size=50)
 
 def switch_to_path(
     hero: Character, path: Union[int, List[Vector2]]) -> None:
