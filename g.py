@@ -19,6 +19,12 @@ class MockEntity(pygame.sprite.Sprite):
         for key, value in kwargs.items():
             setattr(self, key, value)
 
+# def mock_entity(**kwargs) -> GameEntity:
+#     entity = GameEntity(None, None, None)
+#     for key, value in kwargs.items():
+#         setattr(entity, key, value)
+#     return entity
+
 class Character:
     def __init__(self):
         ## Immutable Attributes
@@ -224,19 +230,20 @@ def get_enemy_base(hero: Character) -> GameEntity:
         lambda entity: enemy_between(hero, entity),
         lambda entity: entity_type_of_any(entity, base=True)))
     if entity: return entity
-    else: return MockEntity(
+    entity = get_first_of(get_entities_that_are(hero,
+        lambda entity: enemy_between(hero, entity),
+        lambda entity: entity_type_of_any(
+            entity, arrow=False, fireball=False, archer=True, 
+            knight=True, wizard=True, orc=True, tower=False, base=False)))
+    if entity: return entity.base
+    print('WARN: Cannot find enemy base')
+    return MockEntity(
         position=Vector2(
             hero.world.graph.nodes[hero.base.target_node_index].position))
 
 def get_friendly_base(hero: Character) -> GameEntity:
     '''Public: Gets friendly base'''
-    entity = get_first_of(get_entities_that_are(hero, 
-        lambda entity: friendly_between(hero, entity),
-        lambda entity: entity_type_of_any(entity, base=True)))
-    if entity: return entity
-    else: return MockEntity(
-        position=Vector2(
-            hero.world.graph.nodes[hero.base.spawn_node_index].position))
+    return hero.base
 
 # def get_nearest_enemy(hero: Character) -> Union[None, Character]:
 #     enemy = hero.world.get_nearest_opponent(hero)
