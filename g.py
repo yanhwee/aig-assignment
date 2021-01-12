@@ -336,19 +336,18 @@ def distance_between(a: Vector2, b: Vector2):
 
 ###  Handle KO  ###
 def ko_do_actions(hero: Character) -> Union[None, str]:
-    return None
-
-def ko_check_conditions(hero: Character, respawn_state_name: str) -> Union[None, str]:
-    if hero.current_respawn_time <= 0:
-        hero.current_respawn_time = hero.respawn_time
-        hero.ko = False
-        return respawn_state_name
-    return None
+    pass
 
 def ko_entry_actions(hero: Character) -> Union[None, str]:
     hero.current_hp = hero.max_hp
     hero.position = Vector2(hero.base.spawn_position)
     hero.velocity = Vector2(0, 0)
+    
+def ko_check_conditions(hero: Character, respawn_state_name: str) -> Union[None, str]:
+    if hero.current_respawn_time <= 0:
+        hero.current_respawn_time = hero.respawn_time
+        hero.ko = False
+        return respawn_state_name
     return None
 
 ###  Path Finding  ###
