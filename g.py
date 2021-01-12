@@ -448,7 +448,7 @@ def position_away_from_target_using_path(
 
 def path_position_a_to_b(
     path: [Vector2], a: Vector2, b: Vector2, towards: bool,
-    epsilon=1e-1, proximity_threshold=-1) -> Vector2:
+    epsilon=9e-2, proximity_threshold=-1) -> Vector2:
     '''Private: Returns a position on the path towards or away from target'''
     a_pv, a_loss = path_value_from_position(path, a)
     b_pv, b_loss = path_value_from_position(path, b)
@@ -466,7 +466,7 @@ def switchable_to_path(
     if isinstance(path, int): path = hero.paths[path]
     pv, loss = path_value_from_position(path, hero.position)
     path_pos = position_from_path_value(path, pv)
-    return in_sight_with_target(hero, path_pos, size=150)
+    return in_sight_with_target(hero, path_pos, size=35)
 
 def switch_to_path(
     hero: Character, path: Union[int, List[Vector2]]) -> None:
@@ -531,6 +531,24 @@ def get_first_of(iterable):
         return next(iter(iterable))
     except StopIteration:
         return None
+
+def mask_to_surface(mask: Mask, color=(0,0,0,255)) -> Surface:
+    width, height = mask.get_size()
+    surface = Surface((width, height)) # pylint: disable=too-many-function-args
+    surface.fill((255,255,255,255))
+    for x in range(width):
+        for y in range(height):
+            if mask.get_at((x, y)):
+                surface.set_at((x, y), color)
+    return surface
+
+def render_line_of_sight(
+    hero: Character, target: Union[Vector2, GameEntity], surface: Surface,
+    bits: int=300, size: int=15) -> None:
+    if isinstance(target, GameEntity): target = target.position
+    line = line_entity(hero.position, target, bits=bits, size=size)
+    line_surface = mask_to_surface(line.mask)
+    surface.blit(line_surface, line.rect)
 
 ###  Unused  ###
 # def projection_length_signed(a: Vector2, b: Vector2) -> float:
