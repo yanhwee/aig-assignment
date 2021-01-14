@@ -26,14 +26,10 @@ class Wizard_TeamA(Character):
         seeking_state = WizardStateSeeking_TeamA(self)
         attacking_state = WizardStateSkirmishing_TeamA(self)
         ko_state = WizardStateKO_TeamA(self)
-        healing_state = WizardStateHealing_TeamA(self)
-        retreating_state = WizardStateRetreating_TeamA(self)
 
         self.brain.add_state(seeking_state)
         self.brain.add_state(attacking_state)
         self.brain.add_state(ko_state)
-        self.brain.add_state(healing_state)
-        self.brain.add_state(retreating_state)
 
         self.brain.set_state("seeking")
 
@@ -91,12 +87,13 @@ class WizardStateSeeking_TeamA(State):
         g.set_move_target(self.wizard, path_pos)
         g.update_velocity(self.wizard)
        
-
+        if self.wizard.current_hp < HEALTH_PERCENTAGE * (self.wizard.max_hp):
+            self.wizard.heal()
     def check_conditions(self):
 
         # healing takes priority over skirmishing 
-        if self.wizard.current_hp < HEALTH_PERCENTAGE * (self.wizard.max_hp):
-            return "healing"
+        #if self.wizard.current_hp < HEALTH_PERCENTAGE * (self.wizard.max_hp):
+        #    return "healing"
 
         enemy = get_enemy_for_cluster_bomb(self.wizard)
         if enemy:
@@ -139,74 +136,31 @@ class WizardStateSkirmishing_TeamA(State):
                 #g.set_move_target(self.wizard, path_pos)
                 #g.update_velocity(self.wizard)
 
-
-    def check_conditions(self):
-
-        # target is within sight AND is within the range of the target
-        #enemy = g.get_nearest_enemy_that_is(self.wizard,
-        #    lambda entity: g.within_range_of_target(self.wizard, entity),
-        #    lambda entity: g.in_sight_with_preaimed_target(self.wizard, entity))
-
-        if self.wizard.current_hp < HEALTH_PERCENTAGE * (self.wizard.max_hp):
-            return "healing"
-
-        if self.enemy is None:
-            return 'seeking'
-
-        if self.enemy:
-            return "retreating"
-
-        return None
-            
-    def exit_actions(self):
-        self.enemy = None
-
-
-class WizardStateRetreating_TeamA(State):
-
-    def __init__(self, wizard):
-
-        State.__init__(self, "retreating")
-        self.wizard = wizard
-        self.enemy = None
-
-
-    def entry_actions(self):
-        pass
-
-    def do_actions(self):
-        
-        #self.enemy = g.get_nearest_enemy_that_is(self.wizard,
-        #    lambda entity: g.within_range_of_target(self.wizard, entity, self.wizard.min_target_distance),
-        #    lambda entity: g.in_sight_with_preaimed_target(self.wizard, entity))
-        self.enemy  =  get_enemy_for_cluster_bomb(self.wizard)
-    
-        if self.enemy:
             path_pos = g.position_away_from_target_using_path(self.wizard, self.enemy)
             g.set_move_target(self.wizard, path_pos)
             g.update_velocity(self.wizard)
 
-
+        if self.wizard.current_hp < HEALTH_PERCENTAGE * (self.wizard.max_hp):
+            self.wizard.heal()
     def check_conditions(self):
 
         # target is within sight AND is within the range of the target
         #enemy = g.get_nearest_enemy_that_is(self.wizard,
         #    lambda entity: g.within_range_of_target(self.wizard, entity),
         #    lambda entity: g.in_sight_with_preaimed_target(self.wizard, entity))
-        if self.enemy:
-            return "skirmishing"
 
-        if self.wizard.current_hp < 0.8 * (self.wizard.max_hp):
-            return "healing"
 
         if self.enemy is None:
             return 'seeking'
+
+        #if self.enemy:
+        #    return "retreating"
 
         return None
             
     def exit_actions(self):
         self.enemy = None
-       
+
 
 class WizardStateKO_TeamA(State):
 
@@ -224,37 +178,6 @@ class WizardStateKO_TeamA(State):
 
     def entry_actions(self):
         return g.ko_entry_actions(self.wizard)
-
-
-class WizardStateHealing_TeamA(State):
-    def __init__(self, wizard):
-
-        State.__init__(self, "healing")
-        self.wizard = wizard
-
-    def do_actions(self):
-
-        #print("healing")
-        self.wizard.heal()
-        
-    def check_conditions(self):
-
-        self.enemy = get_enemy_for_cluster_bomb(self.wizard)
-
-        if self.enemy is None:
-            return "seeking"
-       
-        if self.enemy:
-            return "retreating"
-
-        return None
-
-    def entry_actions(self):
-        pass
-
-    def exit_actions(self):
-        self.enemy = None
-
 
 
 
