@@ -9,20 +9,20 @@ INITIAL_STATE = 'seeking'
 
 DEFAULT_PATH = 3
 
-LOW_HP = 199
-HIGH_HP = 200
+LOW_HP = 75
+# HIGH_HP = 200
 
-HEALING_NO_ENEMY_RADIUS = 160
-HEALING_PROJECTILE_RETREAT_RADIUS = 150
-HEALING_ENEMY_RETREAT_RADIUS = 220
+HEALING_NO_ENEMY_RADIUS = 150
+HEALING_PROJECTILE_RETREAT_RADIUS = 200
+HEALING_ENEMY_RETREAT_RADIUS = 200
 
-BASE_ATTACKING_PROJECTILE_RETREAT_RADIUS = 150
-BASE_ATTACKING_ENEMY_RETREAT_RADIUS = 155
+BASE_ATTACKING_PROJECTILE_RETREAT_RADIUS = 0
+BASE_ATTACKING_ENEMY_RETREAT_RADIUS = 150
 
-ATTACKING_PROJECTILE_RETREAT_RADIUS = 150
-ATTACKING_ENEMY_RETREAT_RADIUS = 155
+ATTACKING_PROJECTILE_RETREAT_RADIUS = 140
+ATTACKING_ENEMY_RETREAT_RADIUS = 185
 
-SEEKING_PROJECTILE_RETREAT_RADIUS = 150
+SEEKING_PROJECTILE_RETREAT_RADIUS = 140
 
 class Archer_TeamA(Character):
     def __init__(self, world, image, projectile_image, base, position):
@@ -50,10 +50,6 @@ class Archer_TeamA(Character):
         self.brain.set_state(INITIAL_STATE)
 
     def render(self, surface):
-        entity = self.nearest_enemy_in_sight()
-        if entity:
-            g.render_line_of_sight(self, entity, surface)
-        
         Character.render(self, surface)
 
     def process(self, time_passed):
@@ -82,6 +78,10 @@ class Archer_TeamA(Character):
         return g.get_nearest_enemy_that_is(self,
             lambda entity: g.in_sight_with_target(self, entity))
 
+    def nearest_preaimed_enemy_in_sight(self):
+        return g.get_nearest_enemy_that_is(self,
+            lambda entity: g.in_sight_with_preaimed_target(self, entity))
+
     def pos_away_from(self, target):
         return g.position_away_from_target_using_path(self, target)
 
@@ -107,12 +107,13 @@ class Archer_TeamA(Character):
     def common_check_conditions(self):
         enemy_base = self.get_enemy_base()
         enemy = self.nearest_enemy_in_sight()
+        enemy2 = self.nearest_preaimed_enemy_in_sight()
         low_hp = self.current_hp <= LOW_HP
         if low_hp and not self.near_to(enemy, HEALING_NO_ENEMY_RADIUS):
             return 'healing'
         elif self.near_to(enemy_base):
             return 'base_attacking'
-        elif self.near_to(enemy):
+        elif self.near_to(enemy2):
             return 'attacking'
         else:
             return 'seeking'
@@ -140,7 +141,8 @@ class ArcherStateHealing_TeamA(State):
         self.archer.update_velocity()
 
     def check_conditions(self):
-        return self.archer.common_check_conditions()
+        state = self.archer.common_check_conditions()
+        return None if state == 'healing' else state
 
 class ArcherStateBaseAttacking_TeamA(State):
     def __init__(self, archer: Archer_TeamA):
@@ -154,7 +156,8 @@ class ArcherStateBaseAttacking_TeamA(State):
         projectile = self.archer.nearest_projectile_in_sight()
         enemy = self.archer.nearest_enemy_in_sight()
         enemy_base = self.archer.get_enemy_base()
-        self.archer.ranged_attack(enemy_base.position)
+        if enemy_base:
+            self.archer.ranged_attack(enemy_base.position)
         if self.archer.near_to(projectile, BASE_ATTACKING_PROJECTILE_RETREAT_RADIUS):
             self.archer.move_away_from(projectile)
         elif self.archer.near_to(enemy, BASE_ATTACKING_ENEMY_RETREAT_RADIUS):
@@ -164,7 +167,8 @@ class ArcherStateBaseAttacking_TeamA(State):
         self.archer.update_velocity()
 
     def check_conditions(self):
-        return self.archer.common_check_conditions()
+        state = self.archer.common_check_conditions()
+        return None if state == 'base_attacking' else state
 
 class ArcherStateAttacking_TeamA(State):
     def __init__(self, archer: Archer_TeamA):
@@ -177,9 +181,9 @@ class ArcherStateAttacking_TeamA(State):
     def do_actions(self):
         projectile = self.archer.nearest_projectile_in_sight()
         enemy = self.archer.nearest_enemy_in_sight()
-        enemy_base = self.archer.get_enemy_base()
-        if enemy:
-            preaim_pos = g.preaim_entity(self.archer, enemy)
+        enemy2 = self.archer.nearest_preaimed_enemy_in_sight()
+        if enemy2:
+            preaim_pos = g.preaim_entity(self.archer, enemy2)
             self.archer.ranged_attack(preaim_pos)
         if self.archer.near_to(projectile, ATTACKING_PROJECTILE_RETREAT_RADIUS):
             self.archer.move_away_from(projectile)
@@ -190,7 +194,8 @@ class ArcherStateAttacking_TeamA(State):
         self.archer.update_velocity()
 
     def check_conditions(self):
-        return self.archer.common_check_conditions()
+        state = self.archer.common_check_conditions()
+        return None if state == 'attacking' else state
 
 class ArcherStateSeeking_TeamA(State):
     def __init__(self, archer: Archer_TeamA):
@@ -210,7 +215,8 @@ class ArcherStateSeeking_TeamA(State):
         self.archer.update_velocity()
 
     def check_conditions(self):
-        return self.archer.common_check_conditions()
+        state = self.archer.common_check_conditions()
+        return None if state == 'seeking' else state
 
 class ArcherStateKO_TeamA(State):
     def __init__(self, archer: Archer_TeamA):
@@ -242,18 +248,6 @@ class ArcherStateFullControl_TeamA(State):
     
     def do_actions(self):
         # Functions
-        near_projectile = lambda radius: \
-            g.get_nearest_non_friendly_projectile_that_is(self.archer,
-                lambda entity: g.within_range_of_target(
-                    self.archer, entity, radius),
-                lambda entity: g.in_sight_with_target(
-                    self.archer, entity))
-        near_enemy = lambda radius: \
-            g.get_nearest_enemy_that_is(self.archer,
-                lambda entity: g.within_range_of_target(
-                    self.archer, entity, radius),
-                lambda entity: g.in_sight_with_target(
-                    self.archer, entity))
         pos_away_from = lambda target: \
             g.position_away_from_target_using_path(
                 self.archer, target)
@@ -273,6 +267,8 @@ class ArcherStateFullControl_TeamA(State):
             lambda entity: g.in_sight_with_target(self.archer, entity))
         enemy = g.get_nearest_enemy_that_is(self.archer,
             lambda entity: g.in_sight_with_target(self.archer, entity))
+        enemy2 = g.get_nearest_enemy_that_is(self.archer,
+            lambda entity: g.in_sight_with_preaimed_target(self.archer, entity))
         low_hp = self.archer.current_hp <= LOW_HP
         # Heal
         if low_hp and not near_to(enemy, HEALING_NO_ENEMY_RADIUS):
@@ -293,8 +289,8 @@ class ArcherStateFullControl_TeamA(State):
             else:
                 dont_move()
         # Attack Enemy
-        elif near_to(enemy, None):
-            preaim_pos = g.preaim_entity(self.archer, enemy)
+        elif near_to(enemy2, None):
+            preaim_pos = g.preaim_entity(self.archer, enemy2)
             self.archer.ranged_attack(preaim_pos)
             if near_to(projectile, ATTACKING_PROJECTILE_RETREAT_RADIUS):
                 move_away_from(projectile)
