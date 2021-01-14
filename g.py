@@ -1,4 +1,3 @@
-import sys
 from copy import deepcopy
 from math import sqrt
 from itertools import tee, accumulate
@@ -9,7 +8,6 @@ from pygame import Surface, Vector2, Rect, Mask
 from Base import Base
 from GameEntity import GameEntity
 from HAL import World
-from State import State
 from Graph import pathFindAStar
 # from Character import Character
 
@@ -64,8 +62,8 @@ class Character:
         self.velocity: Vector2
         self.move_target: Union[None, Vector2, GameEntity]
         self.attack_target: Union[None, Vector2, GameEntity]
-        self.paths: [[Vector2]]
-        self.path: [Vector2]
+        self.paths: List[List[Vector2]]
+        self.path: List[Vector2]
 
 ###  Initialisation  ###
 def init_hero(hero: Character) -> None:
@@ -175,7 +173,7 @@ def entity_not_ko(entity: GameEntity) -> bool:
 
 def get_entities_that_are(
     hero: Character,
-    *predicates: Callable[[GameEntity], bool]) -> [GameEntity]:
+    *predicates: Callable[[GameEntity], bool]) -> List[GameEntity]:
     '''Public: Retrives entities that fulfils all conditions'''
     return [
         entity for entity in hero.world.entities.values()
@@ -285,7 +283,8 @@ def line_entity(
             width, height),
         mask=mask)
 
-def colliding_with_entities(this: GameEntity, others: [GameEntity]) -> bool:
+def colliding_with_entities(
+    this: GameEntity, others: List[GameEntity]) -> bool:
     '''Private: Checks if an entity collides with a group of entities'''
     collided_entities = pygame.sprite.spritecollide(
         this, others, False, pygame.sprite.collide_mask)
@@ -351,7 +350,7 @@ def ko_check_conditions(hero: Character, respawn_state_name: str) -> Union[None,
     return None
 
 ###  Path Finding  ###
-def get_paths(hero: Character) -> [[Vector2]]:
+def get_paths(hero: Character) -> List[List[Vector2]]:
     first  = [1, 2, 3]
     second = [0, 8, 9, 10, 11, 4]
     third  = [0, 8, 12, 13, 11, 4]
@@ -369,7 +368,7 @@ def get_paths(hero: Character) -> [[Vector2]]:
     #         (first, second, third, fourth)))
 
 def best_path_value_from_position(
-    paths: Tuple[Vector2], position: Vector2) -> [int, float]:
+    paths: Tuple[List[Vector2]], position: Vector2) -> Tuple[int, float]:
     '''Private: Returns most probably path index & the path value of the position'''
     values, losses = zip(*
         [path_value_from_position(path, position) for path in paths])
@@ -377,7 +376,7 @@ def best_path_value_from_position(
     return path_index, values[path_index]
 
 def path_value_from_position(
-    path: [Vector2], position: Vector2) -> [float, float]:
+    path: List[Vector2], position: Vector2) -> Tuple[float, float]:
     '''Private: Maps a position on a path to [0, 1] & returns loss'''
     assert(len(path) >= 2)
     p = position
@@ -411,7 +410,7 @@ def path_value_from_position(
     return path_value, min(vp_min_dist, abp_min_dist)
 
 def position_from_path_value(
-    path: [Vector2], value: float) -> Vector2:
+    path: List[Vector2], value: float) -> Vector2:
     '''Private: Find the position of the path value on a path'''
     path_value = value
     ab_vectors = [b - a for a, b in pairwise(path)]
@@ -428,26 +427,26 @@ def position_from_path_value(
     return p
 
 def most_probable_path_that_target_is_on(
-    hero: Character, target: Union[Vector2, GameEntity]) -> [int, float]:
+    hero: Character, target: Union[Vector2, GameEntity]) -> Tuple[int, float]:
     if isinstance(target, GameEntity): target = target.position
     return best_path_value_from_position(hero.paths, target)
 
 def position_towards_target_using_path(
-    hero: Character, target: [Vector2, GameEntity]) -> Vector2:
+    hero: Character, target: Union[Vector2, GameEntity]) -> Vector2:
     '''Public: Returns a position on the path towards target'''
     if isinstance(target, GameEntity): target = target.position
     return path_position_a_to_b(
         hero.path, hero.position, target, towards=True)
 
 def position_away_from_target_using_path(
-    hero: Character, target: [Vector2, GameEntity]) -> Vector2:
+    hero: Character, target: Union[Vector2, GameEntity]) -> Vector2:
     '''Public: Returns a position on the path away from target'''
     if isinstance(target, GameEntity): target = target.position
     return path_position_a_to_b(
         hero.path, hero.position, target, towards=False)
 
 def path_position_a_to_b(
-    path: [Vector2], a: Vector2, b: Vector2, towards: bool,
+    path: List[Vector2], a: Vector2, b: Vector2, towards: bool,
     epsilon=9e-2, proximity_threshold=-1) -> Vector2:
     '''Private: Returns a position on the path towards or away from target'''
     a_pv, a_loss = path_value_from_position(path, a)
@@ -482,7 +481,7 @@ def switch_to_path(
 
 def path_find_astar(
     hero: Character, src: Union[Vector2, GameEntity], 
-    dest: Union[Vector2, GameEntity]) -> [Vector2]:
+    dest: Union[Vector2, GameEntity]) -> List[Vector2]:
     '''Public: Returns a list of positions from source to destination using AStar'''
     if isinstance(src, GameEntity): src = src.position
     if isinstance(dest, GameEntity): dest = dest.position
@@ -498,7 +497,7 @@ def path_find_astar(
     return path
 
 def path_find_astar_from_hero_to_target(
-    hero: Character, dest: Union[Vector2, GameEntity]) -> [Vector2]:
+    hero: Character, dest: Union[Vector2, GameEntity]) -> List[Vector2]:
     '''Public: Returns a list of position from hero position to target using AStar'''
     return path_find_astar(hero, hero.position, dest)
 
@@ -522,7 +521,7 @@ def argmin(iterable, key=None):
     i, val = min(enumerate(iterable), key=lambda x: x[1])
     return i
 
-def linspace(start: float, stop: float, num: int) -> [float]:
+def linspace(start: float, stop: float, num: int) -> List[float]:
     width = (stop - start) / (num - 1)
     return [start + width * i for i in range(num)]
 
