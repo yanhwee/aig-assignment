@@ -91,10 +91,6 @@ class WizardStateSeeking_TeamA(State):
             self.wizard.heal()
     def check_conditions(self):
 
-        # healing takes priority over skirmishing 
-        #if self.wizard.current_hp < HEALTH_PERCENTAGE * (self.wizard.max_hp):
-        #    return "healing"
-
         enemy = get_enemy_for_cluster_bomb(self.wizard)
         if enemy:
             return 'skirmishing'
@@ -119,9 +115,6 @@ class WizardStateSkirmishing_TeamA(State):
 
     def do_actions(self):
         
-        #self.enemy = g.get_nearest_enemy_that_is(self.wizard,
-        #    lambda entity: g.within_range_of_target(self.wizard, entity, self.wizard.min_target_distance),
-        #    lambda entity: g.in_sight_with_preaimed_target(self.wizard, entity))
         self.enemy  =  get_enemy_for_cluster_bomb(self.wizard)
     
         if self.enemy:
@@ -132,10 +125,7 @@ class WizardStateSkirmishing_TeamA(State):
                 preaim_position = g.preaim_entity(self.wizard, self.enemy)
                 #send the explosive to that direction
                 self.wizard.ranged_attack(preaim_position, self.wizard.explosion_image)
-                #path_pos = g.position_away_from_target_using_path(self.wizard, self.enemy)
-                #g.set_move_target(self.wizard, path_pos)
-                #g.update_velocity(self.wizard)
-
+              
             path_pos = g.position_away_from_target_using_path(self.wizard, self.enemy)
             g.set_move_target(self.wizard, path_pos)
             g.update_velocity(self.wizard)
@@ -144,17 +134,9 @@ class WizardStateSkirmishing_TeamA(State):
             self.wizard.heal()
     def check_conditions(self):
 
-        # target is within sight AND is within the range of the target
-        #enemy = g.get_nearest_enemy_that_is(self.wizard,
-        #    lambda entity: g.within_range_of_target(self.wizard, entity),
-        #    lambda entity: g.in_sight_with_preaimed_target(self.wizard, entity))
-
 
         if self.enemy is None:
             return 'seeking'
-
-        #if self.enemy:
-        #    return "retreating"
 
         return None
             
