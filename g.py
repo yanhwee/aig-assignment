@@ -1,5 +1,5 @@
 from copy import deepcopy
-from math import sqrt
+from math import sqrt, atan2, sin, cos
 from itertools import tee, accumulate
 from functools import reduce
 from typing import Callable, Union, Tuple, List
@@ -305,6 +305,12 @@ def in_sight_with_preaimed_target(
     return in_sight_with_target(hero, preaim_entity(hero, target))
 
 ###  Proximity  ###
+def point_entity(position: Vector2):
+    p = position
+    return MockEntity(
+        rect=Rect(int(p.x), int(p.y), 1, 1),
+        mask=Mask((1,1), fill=True))
+
 def touching_target(
     hero: Character,
     target: Union[Vector2, GameEntity]) -> bool:
@@ -317,13 +323,34 @@ def touching_target(
         raise Exception
 
 def within_range_of_target(
-    hero: Character, 
-    target: Union[Vector2, GameEntity], 
-    radius: Union[None, float]=None) -> bool:
-    '''Public: Checks if target is within hero's attack range'''
-    if isinstance(target, GameEntity): target = target.position
-    if radius is None:                 radius = hero.projectile_range
-    return within_range_between_positions(hero.position, target, radius)
+    hero: Character,
+    target: Union[Vector2, GameEntity],
+    radius: Union[None, float]=None,
+    allowance: float=1) -> bool:
+    '''Public: Checks if target is within hero's attack range (Too Generic)'''
+    if radius is None:
+        radius = hero.projectile_range
+    return (
+        within_range_of_entity(hero, target, radius, allowance)
+        if isinstance(target, GameEntity) else
+        within_range_of_position(hero, target, radius))
+
+def within_range_of_entity(
+    hero: Character, entity: GameEntity, 
+    radius: float, allowance: float=1) -> bool:
+    '''Public: Checks if entity box is within radius of hero when aimed directly at center of enemy'''
+    direction = entity.position - hero.position
+    if not direction: return True
+    if direction.length() > radius:
+        direction.scale_to_length(max(0, radius - allowance))
+    target = hero.position + direction
+    point = point_entity(target)
+    return pygame.sprite.collide_mask(point, entity)
+
+def within_range_of_position(
+    hero: Character, position: Vector2, radius: float) -> bool:
+    '''Public: Checks if a position is within radius of hero'''
+    return within_range_between_positions(hero.position, position, radius)
 
 def within_range_between_positions(
     a: Vector2, b: Vector2, radius: float) -> bool:
@@ -548,6 +575,15 @@ def render_line_of_sight(
     line = line_entity(hero.position, target, bits=bits, size=size)
     line_surface = mask_to_surface(line.mask)
     surface.blit(line_surface, line.rect)
+
+def vector_radian(v: Vector2) -> float:
+    return atan2(v.y, v.x)
+
+def box_radius(width, height, rad):
+    cosr, sinr = cos(rad), sin(rad)
+    brx = abs(width / cosr) if cosr else float('inf')
+    bry = abs(height / sinr) if sinr else float('inf')
+    return min(brx, bry)
 
 ###  Unused  ###
 # def projection_length_signed(a: Vector2, b: Vector2) -> float:
