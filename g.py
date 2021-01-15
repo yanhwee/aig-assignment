@@ -323,11 +323,20 @@ def touching_target(
         raise Exception
 
 def within_range_of_target(
+    hero: Character, 
+    target: Union[Vector2, GameEntity], 
+    radius: Union[None, float]=None) -> bool:
+    '''Public: Checks if target is within hero's attack range'''
+    if isinstance(target, GameEntity): target = target.position
+    if radius is None:                 radius = hero.projectile_range
+    return within_range_between_positions(hero.position, target, radius)
+
+def within_range_of_target2(
     hero: Character,
     target: Union[Vector2, GameEntity],
     radius: Union[None, float]=None,
     allowance: float=1) -> bool:
-    '''Public: Checks if target is within hero's attack range (Too Generic)'''
+    '''Public: Checks if target is within hero's attack range'''
     if radius is None:
         radius = hero.projectile_range
     return (
