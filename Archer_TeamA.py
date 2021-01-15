@@ -102,7 +102,7 @@ class Archer_TeamA(Character):
 
     def near_to(self, target, radius=None):
         '''Use projectile_range if radius is None'''
-        return target and g.within_range_of_target(self, target, radius)
+        return target and g.within_range_of_target_edge(self, target, radius)
 
     def common_check_conditions(self):
         enemy_base = self.get_enemy_base()
@@ -117,7 +117,6 @@ class Archer_TeamA(Character):
             return 'attacking'
         else:
             return 'seeking'
-        return None
 
 class ArcherStateHealing_TeamA(State):
     def __init__(self, archer: Archer_TeamA):
@@ -260,7 +259,7 @@ class ArcherStateFullControl_TeamA(State):
             g.set_move_target(self.archer, pos_towards(target))
         dont_move = lambda: g.set_move_target(self.archer, None)
         near_to = lambda target, radius: \
-            target and g.within_range_of_target(self.archer, target, radius)
+            target and g.within_range_of_target_edge(self.archer, target, radius)
         # Variables
         enemy_base = g.get_enemy_base(self.archer)
         projectile = g.get_nearest_non_friendly_projectile_that_is(self.archer,
