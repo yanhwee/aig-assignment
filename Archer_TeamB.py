@@ -6,6 +6,8 @@ from Graph import *
 from Character import *
 from State import *
 
+PATH = 0
+
 class Archer_TeamB(Character):
 
     def __init__(self, world, image, projectile_image, base, position):
@@ -87,6 +89,11 @@ class ArcherStateSeeking_TeamB(State):
         return None
 
     def entry_actions(self):
+
+        path_index = (
+            randint(0, len(self.archer.world.paths)-1) 
+            if PATH is None else PATH)
+        self.archer.path_graph = self.archer.world.paths[path_index]
 
         nearest_node = self.archer.path_graph.get_nearest_node(self.archer.position)
 

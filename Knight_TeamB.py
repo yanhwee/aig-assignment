@@ -6,6 +6,8 @@ from Graph import *
 from Character import *
 from State import *
 
+PATH = 0
+
 class Knight_TeamB(Character):
 
     def __init__(self, world, image, base, position):
@@ -88,6 +90,11 @@ class KnightStateSeeking_TeamB(State):
 
 
     def entry_actions(self):
+
+        path_index = (
+            randint(0, len(self.knight.world.paths)-1) 
+            if PATH is None else PATH)
+        self.knight.path_graph = self.knight.world.paths[path_index]
 
         nearest_node = self.knight.path_graph.get_nearest_node(self.knight.position)
 
