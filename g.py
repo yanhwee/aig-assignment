@@ -508,7 +508,7 @@ def switchable_to_path(
     if isinstance(path, int): path = hero.paths[path]
     pv, loss = path_value_from_position(path, hero.position)
     path_pos = position_from_path_value(path, pv)
-    return in_sight_with_target(hero, path_pos, size=35)
+    return in_sight_with_target(hero, path_pos, size=45)
 
 def switch_to_path(
     hero: Character, path: Union[int, List[Vector2]]) -> None:
