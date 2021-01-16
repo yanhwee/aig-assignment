@@ -6,7 +6,7 @@ from Graph import *
 from Character import *
 from State import *
 
-PATH = 0
+PATH = None
 
 class Knight_TeamB(Character):
 

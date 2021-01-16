@@ -342,7 +342,7 @@ def within_range_of_target_edge(
     hero: Character,
     target: Union[Vector2, GameEntity],
     radius: Union[None, float]=None,
-    allowance: float=1) -> bool:
+    allowance: float=10) -> bool:
     '''Public: Checks if target edge is within hero's attack range'''
     if radius is None:
         radius = hero.projectile_range
@@ -353,7 +353,7 @@ def within_range_of_target_edge(
 
 def within_range_of_entity(
     hero: Character, entity: GameEntity, 
-    radius: float, allowance: float=1) -> bool:
+    radius: float, allowance: float=10) -> bool:
     '''Public: Checks if entity box is within radius of hero when aimed directly at center of enemy'''
     direction = entity.position - hero.position
     if not direction: return True
