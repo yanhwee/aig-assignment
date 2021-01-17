@@ -9,9 +9,8 @@ import g
 
 DEFAULT_PATH = 3
 KNIGHT_SENSING_RADIUS = KNIGHT_MIN_TARGET_DISTANCE
-KNIGHT_HEALING_THRESHOLD_LEVEL1 = 50
-KNIGHT_HEALING_THRESHOLD_LEVEL2 = 65
-KNIGHT_HEALING_THRESHOLD = KNIGHT_HEALING_THRESHOLD_LEVEL1
+KNIGHT_HEALING_THRESHOLD_LIST = [40,70,65,60]
+KNIGHT_HEALING_THRESHOLD = KNIGHT_HEALING_THRESHOLD_LIST[0]
 
 class Knight_TeamA(Character):
 
@@ -46,11 +45,13 @@ class Knight_TeamA(Character):
     def process(self, time_passed):
         
         Character.process(self, time_passed)
-        level = 0
+        level = 1
         if self.can_level_up():
             level += 1
-            if level >= 2:
-                KNIGHT_HEALING_THRESHOLD = KNIGHT_HEALING_THRESHOLD_LEVEL2
+            if level < len(KNIGHT_HEALING_THRESHOLD_LIST):
+                KNIGHT_HEALING_THRESHOLD = KNIGHT_HEALING_THRESHOLD_LIST[level-1]
+            else:
+                KNIGHT_HEALING_THRESHOLD = KNIGHT_HEALING_THRESHOLD_LIST[-1]
             self.level_up('healing') 
 
 
@@ -71,7 +72,11 @@ class KnightStateSeeking_TeamA(State):
                     self.knight, self.knight)
             g.switch_to_path(self.knight, path_index)
 
-    def do_actions(self): 
+    def do_actions(self):
+        #check if hp is full
+        if self.knight.current_hp != self.knight.max_hp:
+            self.knight.heal()
+        
         #Move towards base
         enemy_base = g.get_enemy_base(self.knight)
         path_pos = g.position_towards_target_using_path(self.knight,enemy_base)
@@ -80,15 +85,8 @@ class KnightStateSeeking_TeamA(State):
 
 
     def check_conditions(self):
-       
-        #check if hp is full
-        if self.knight.current_hp != self.knight.max_hp:
-            return "healing"
-
         # check if enemy is in range
-        enemy = g.get_nearest_enemy_that_is(self.knight,
-            lambda entity: g.within_range_of_target(self.knight, entity, KNIGHT_SENSING_RADIUS),
-            lambda entity: g.in_sight_with_target(self.knight, entity))
+        enemy = get_nearest_enemy(self.knight)
 
         if enemy:
             return "attacking"
@@ -121,22 +119,20 @@ class KnightStateAttacking_TeamA(State):
             g.update_velocity(self.knight)
         else:
             #check if other enemies exists 
-            enemy = g.get_nearest_enemy_that_is(self.knight,
-                lambda entity: g.within_range_of_target(self.knight, entity, KNIGHT_SENSING_RADIUS),
-                lambda entity: g.in_sight_with_target(self.knight, entity))
+            enemy = get_nearest_enemy(self.knight)
 
             if enemy:
                 g.set_move_target(self.knight,enemy)
                 g.update_velocity(self.knight)
                 # colliding with target
                 if g.touching_target(self.knight,enemy):
+                    #targets highest dps enemy among all the colliding targets
+                    enemy = sort_touching_enemies_with_hdps(self.knight)
                     attack(self.knight,enemy)
 
     def check_conditions(self):
 
-        enemy = g.get_nearest_enemy_that_is(self.knight,
-            lambda entity: g.within_range_of_target(self.knight, entity, KNIGHT_SENSING_RADIUS),
-            lambda entity: g.in_sight_with_target(self.knight, entity))
+        enemy = get_nearest_enemy(self.knight)
         
         # target is gone        
         if enemy is None:
@@ -182,26 +178,16 @@ class KnightStateHealing_TeamA(State):
         return None
 
     def do_actions(self):
-
-        #check if there is enemy
-        enemy = g.get_nearest_enemy_that_is(self.knight,
-            lambda entity: g.within_range_of_target(self.knight, entity, KNIGHT_SENSING_RADIUS),
-            lambda entity: g.in_sight_with_target(self.knight, entity))
-
-        #Set target to none to stand on the spot
-        if enemy:
-            g.set_move_target(self.knight,None)
-            g.update_velocity(self.knight)
         
-        #heal
+        #stand at the spot and heal
+        g.set_move_target(self.knight,None)
+        g.update_velocity(self.knight)
         self.knight.heal()
 
 
     def check_conditions(self):
 
-        enemy = g.get_nearest_enemy_that_is(self.knight,
-            lambda entity: g.within_range_of_target(self.knight, entity, KNIGHT_SENSING_RADIUS),
-            lambda entity: g.in_sight_with_target(self.knight, entity))
+        enemy = get_nearest_enemy(self.knight)
 
         # target is gone
         if enemy is None:
@@ -211,8 +197,44 @@ class KnightStateHealing_TeamA(State):
         if self.knight.current_hp/self.knight.max_hp *100 > KNIGHT_HEALING_THRESHOLD:
             return "attacking"
 
-
+# Helper Functions
 def attack(hero:Character, enemy:GameEntity):
     g.set_move_target(hero, None)
     hero.melee_attack(enemy)
     g.update_velocity(hero)
+
+def get_nearest_enemy(hero:Character):
+    enemy = g.get_nearest_enemy_that_is(hero,
+        lambda entity: g.within_range_of_target(hero, entity, KNIGHT_SENSING_RADIUS),
+        lambda entity: g.in_sight_with_target(hero, entity))
+    
+    return enemy
+
+#Target the highest dps enemy among all colliding enemies
+def sort_touching_enemies_with_hdps(hero:Character):
+    entities = g.get_entities_that_are(hero, 
+        lambda entity: g.touching_target(hero,entity),
+        lambda entity: g.enemy_between(entity, hero),
+        lambda entity: g.entity_type_of_any(
+            entity, arrow=False, fireball=False, archer=True, 
+            knight=True, wizard=True, orc=True, tower=True, base=False),
+        lambda entity: g.entity_not_ko(entity))
+    highest_dps_enemy = max(entities,
+        key= lambda entity: get_entity_damage(entity),
+        default=None)
+
+    return highest_dps_enemy
+
+# Get the dps of each target
+def get_entity_damage(entity:Character):
+    melee_damage = getattr(entity, "melee_damage", None)
+    ranged_damge = getattr(entity, "ranged_damage", None)
+
+    if melee_damage:
+        dps = melee_damage / entity.melee_cooldown
+        return dps
+    elif ranged_damge:
+        dps = ranged_damge / entity.ranged_cooldown
+        return dps
+    else:
+        raise Exception
