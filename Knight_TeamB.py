@@ -58,7 +58,11 @@ class KnightStateSeeking_TeamB(State):
         State.__init__(self, "seeking")
         self.knight = knight
 
-        self.knight.path_graph = self.knight.world.paths[randint(0, len(self.knight.world.paths)-1)]
+        # self.knight.path_graph = self.knight.world.paths[randint(0, len(self.knight.world.paths)-1)]
+        path_index = (
+            randint(0, len(self.knight.world.paths)-1) 
+            if PATH is None else PATH)
+        self.knight.path_graph = self.knight.world.paths[path_index]
 
 
     def do_actions(self):
@@ -90,11 +94,6 @@ class KnightStateSeeking_TeamB(State):
 
 
     def entry_actions(self):
-
-        path_index = (
-            randint(0, len(self.knight.world.paths)-1) 
-            if PATH is None else PATH)
-        self.knight.path_graph = self.knight.world.paths[path_index]
 
         nearest_node = self.knight.path_graph.get_nearest_node(self.knight.position)
 
@@ -166,7 +165,11 @@ class KnightStateKO_TeamB(State):
         if self.knight.current_respawn_time <= 0:
             self.knight.current_respawn_time = self.knight.respawn_time
             self.knight.ko = False
-            self.knight.path_graph = self.knight.world.paths[randint(0, len(self.knight.world.paths)-1)]
+            # self.knight.path_graph = self.knight.world.paths[randint(0, len(self.knight.world.paths)-1)]
+            path_index = (
+                randint(0, len(self.knight.world.paths)-1) 
+                if PATH is None else PATH)
+            self.knight.path_graph = self.knight.world.paths[path_index]
             return "seeking"
             
         return None

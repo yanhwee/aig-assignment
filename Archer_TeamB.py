@@ -58,7 +58,11 @@ class ArcherStateSeeking_TeamB(State):
         State.__init__(self, "seeking")
         self.archer = archer
 
-        self.archer.path_graph = self.archer.world.paths[randint(0, len(self.archer.world.paths)-1)]
+        # self.archer.path_graph = self.archer.world.paths[randint(0, len(self.archer.world.paths)-1)]
+        path_index = (
+            randint(0, len(self.archer.world.paths)-1) 
+            if PATH is None else PATH)
+        self.archer.path_graph = self.archer.world.paths[path_index]
 
 
     def do_actions(self):
@@ -89,11 +93,6 @@ class ArcherStateSeeking_TeamB(State):
         return None
 
     def entry_actions(self):
-
-        path_index = (
-            randint(0, len(self.archer.world.paths)-1) 
-            if PATH is None else PATH)
-        self.archer.path_graph = self.archer.world.paths[path_index]
 
         nearest_node = self.archer.path_graph.get_nearest_node(self.archer.position)
 
@@ -168,7 +167,11 @@ class ArcherStateKO_TeamB(State):
         if self.archer.current_respawn_time <= 0:
             self.archer.current_respawn_time = self.archer.respawn_time
             self.archer.ko = False
-            self.archer.path_graph = self.archer.world.paths[randint(0, len(self.archer.world.paths)-1)]
+            # self.archer.path_graph = self.archer.world.paths[randint(0, len(self.archer.world.paths)-1)]
+            path_index = (
+                randint(0, len(self.archer.world.paths)-1) 
+                if PATH is None else PATH)
+            self.archer.path_graph = self.archer.world.paths[path_index]
             return "seeking"
             
         return None

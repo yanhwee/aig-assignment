@@ -59,7 +59,11 @@ class WizardStateSeeking_TeamB(State):
         State.__init__(self, "seeking")
         self.wizard = wizard
 
-        self.wizard.path_graph = self.wizard.world.paths[randint(0, len(self.wizard.world.paths)-1)]
+        # self.wizard.path_graph = self.wizard.world.paths[randint(0, len(self.wizard.world.paths)-1)]
+        path_index = (
+            randint(0, len(self.wizard.world.paths)-1) 
+            if PATH is None else PATH)
+        self.wizard.path_graph = self.wizard.world.paths[path_index]
         
 
     def do_actions(self):
@@ -89,11 +93,6 @@ class WizardStateSeeking_TeamB(State):
         return None
 
     def entry_actions(self):
-
-        path_index = (
-            randint(0, len(self.wizard.world.paths)-1) 
-            if PATH is None else PATH)
-        self.wizard.path_graph = self.wizard.world.paths[path_index]
 
         nearest_node = self.wizard.path_graph.get_nearest_node(self.wizard.position)
 
@@ -168,7 +167,11 @@ class WizardStateKO_TeamB(State):
         if self.wizard.current_respawn_time <= 0:
             self.wizard.current_respawn_time = self.wizard.respawn_time
             self.wizard.ko = False
-            self.wizard.path_graph = self.wizard.world.paths[randint(0, len(self.wizard.world.paths)-1)]
+            # self.wizard.path_graph = self.wizard.world.paths[randint(0, len(self.wizard.world.paths)-1)]
+            path_index = (
+                randint(0, len(self.wizard.world.paths)-1) 
+                if PATH is None else PATH)
+            self.wizard.path_graph = self.wizard.world.paths[path_index]
             return "seeking"
             
         return None
