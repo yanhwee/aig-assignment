@@ -10,6 +10,7 @@ import g
 DEFAULT_PATH = 3
 HEALTH_PERCENTAGE = 0.8
 MAX_PATH_VALUE_TO_CONSIDER_TO_SWITCH_PATH = 0.5
+NEAR_ENEMY_RETREAT_RADIUS = 190
 PATHS_TO_CONSIDER_TO_SWITCH_TO = [0,3]
 PATHS_TO_CONSIDER_TO_SWITCH_TO = [0,1,2,3]
 
@@ -125,14 +126,24 @@ class WizardStateSkirmishing_TeamA(State):
                 preaim_position = g.preaim_entity(self.wizard, self.enemy)
                 #send the explosive to that direction
                 self.wizard.ranged_attack(preaim_position, self.wizard.explosion_image)
-              
+            g.set_move_target(self.wizard, None);
+            #g.update_velocity(self.wizard)
+
         if self.wizard.current_hp < HEALTH_PERCENTAGE * (self.wizard.max_hp):
             self.wizard.heal()
         
-        if self.enemy:
-            path_pos = g.position_away_from_target_using_path(self.wizard, self.enemy)
+        #retreating
+        enemy = g.get_nearest_enemy_that_is(self.wizard,
+            lambda entity: g.within_range_of_target(self.wizard, entity, NEAR_ENEMY_RETREAT_RADIUS),
+            lambda entity: g.in_sight_with_preaimed_target(self.wizard, entity))
+
+        #to prevent the wizard from continuous retreating from two enemies at once
+        if enemy and (g.distance_between(self.wizard.position, enemy.position) < NEAR_ENEMY_RETREAT_RADIUS):
+            path_pos = g.position_away_from_target_using_path(self.wizard,enemy)
             g.set_move_target(self.wizard, path_pos)
-            g.update_velocity(self.wizard)
+            
+
+        g.update_velocity(self.wizard)     
 
     def check_conditions(self):
 
