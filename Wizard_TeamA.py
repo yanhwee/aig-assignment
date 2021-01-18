@@ -9,6 +9,9 @@ import g
 
 DEFAULT_PATH = 3
 HEALTH_PERCENTAGE = 0.8
+MAX_PATH_VALUE_TO_CONSIDER_TO_SWITCH_PATH = 0.5
+PATHS_TO_CONSIDER_TO_SWITCH_TO = [0,3]
+PATHS_TO_CONSIDER_TO_SWITCH_TO = [0,1,2,3]
 
 class Wizard_TeamA(Character):
 
@@ -58,18 +61,28 @@ class WizardStateSeeking_TeamA(State):
         self.wizard = wizard
 
     def entry_actions(self):
+         g.try_switch_path(self.wizard, DEFAULT_PATH)
 
-        if g.switchable_to_path(self.wizard, DEFAULT_PATH):
-            g.switch_to_path(self.wizard, DEFAULT_PATH)
-        else:
-            path_index, path_value = \
-                g.most_probable_path_that_target_is_on(
-                    self.wizard, self.wizard)
-            g.switch_to_path(self.wizard, path_index)
+    def path_consider_to_switch_to(self):
+        if g.hero_path_value(self.wizard) < MAX_PATH_VALUE_TO_CONSIDER_TO_SWITCH_PATH:
+            enemies = g.get_enemy_heros(self.wizard)
+            if enemies:
+                paths = g.paths_sorted_by_entities_most_on_then_nearest_to_base(
+                    self.wizard, enemies)
+                path = g.find_first_of(
+                    paths, lambda path: path in PATHS_TO_CONSIDER_TO_SWITCH_TO)
+                return path
+        return None
+
+    def consider_switch_path(self):
+        path = self.path_consider_to_switch_to()
+        if path is not None:
+            g.try_switch_path(self.wizard, path)
 
     def do_actions(self):
         #Get enemy base
         #moves towards it
+        self.consider_switch_path()
         enemy_base = g.get_enemy_base(self.wizard)
         path_pos = g.position_towards_target_using_path(self.wizard, enemy_base)
         g.set_move_target(self.wizard, path_pos)
