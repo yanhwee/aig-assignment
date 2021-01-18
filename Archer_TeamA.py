@@ -8,6 +8,8 @@ import g
 INITIAL_STATE = 'seeking'
 
 DEFAULT_PATH = 3
+MAX_PATH_VALUE_TO_CONSIDER_TO_SWITCH_PATH = 0.5
+PATHS_TO_CONSIDER_TO_SWITCH_TO = [0,3]
 
 LOW_HP = 75
 # HIGH_HP = 200
@@ -64,12 +66,6 @@ class Archer_TeamA(Character):
     def get_enemy_base(self):
         return g.get_enemy_base(self)
 
-    def try_switch_path(self, path_index):
-        if not g.switchable_to_path(self, path_index):
-            path_index, path_value = \
-                g.most_probable_path_that_target_is_on(self, self)
-        g.switch_to_path(self, path_index)
-
     def nearest_projectile_in_sight(self):
         return g.get_nearest_non_friendly_projectile_that_is(self,
             lambda entity: g.in_sight_with_target(self, entity))
@@ -89,13 +85,13 @@ class Archer_TeamA(Character):
         return g.position_towards_target_using_path(self, target)
 
     def move_away_from(self, target):
-        return g.set_move_target(self, self.pos_away_from(target))
+        g.set_move_target(self, self.pos_away_from(target))
 
     def move_towards(self, target):
-        return g.set_move_target(self, self.pos_towards(target))
+        g.set_move_target(self, self.pos_towards(target))
 
     def dont_move(self):
-        return g.set_move_target(self, None)
+        g.set_move_target(self, None)
 
     def update_velocity(self):
         g.update_velocity(self)
@@ -202,9 +198,27 @@ class ArcherStateSeeking_TeamA(State):
         self.archer = archer
 
     def entry_actions(self):
-        self.archer.try_switch_path(DEFAULT_PATH)
+        g.try_switch_path(self.archer, DEFAULT_PATH)
+
+    def path_consider_to_switch_to(self):
+        if g.hero_path_value(self.archer) < MAX_PATH_VALUE_TO_CONSIDER_TO_SWITCH_PATH:
+            enemies = g.get_enemy_heros(self.archer)
+            if enemies:
+                paths = g.paths_sorted_by_entities_most_on_then_nearest_to_base(
+                    self.archer, enemies)
+                path = g.find_first_of(
+                    paths, lambda path: path in PATHS_TO_CONSIDER_TO_SWITCH_TO)
+                return path
+        return None
+
+    def consider_switch_path(self):
+        path = self.path_consider_to_switch_to()
+        if path is not None:
+            g.try_switch_path(self.archer, path)
 
     def do_actions(self):
+        self.consider_switch_path()
+        #
         projectile = self.archer.nearest_projectile_in_sight()
         enemy_base = self.archer.get_enemy_base()
         if self.archer.near_to(projectile, SEEKING_PROJECTILE_RETREAT_RADIUS):
