@@ -5,11 +5,11 @@ from Character import *
 from State import *
 import g
 
-INITIAL_STATE = 'seeking'
+INITIAL_STATE = 'full_control'
 
 DEFAULT_PATH = 3
 MAX_PATH_VALUE_TO_CONSIDER_TO_SWITCH_PATH = 0.5
-PATHS_TO_CONSIDER_TO_SWITCH_TO = [0,3]
+PATHS_TO_CONSIDER_TO_SWITCH_TO = [0,1,2,3]
 
 LOW_HP = 75
 # HIGH_HP = 200
@@ -251,15 +251,20 @@ class ArcherStateFullControl_TeamA(State):
         self.archer = archer
 
     def entry_actions(self):
-        if g.switchable_to_path(self.archer, DEFAULT_PATH):
-            g.switch_to_path(self.archer, DEFAULT_PATH)
-        else:
-            path_index, path_value = \
-                g.most_probable_path_that_target_is_on(
-                    self.archer, self.archer)
-            g.switch_to_path(self.archer, path_index)
+        g.try_switch_path(self.archer, DEFAULT_PATH)
     
     def do_actions(self):
+        # Pathfinding
+        path = None
+        if g.hero_path_value(self.archer) < MAX_PATH_VALUE_TO_CONSIDER_TO_SWITCH_PATH:
+            enemies = g.get_enemy_heros(self.archer)
+            if enemies:
+                paths = g.paths_sorted_by_entities_most_on_then_nearest_to_base(
+                    self.archer, enemies)
+                path = g.find_first_of(
+                    paths, lambda path: path in PATHS_TO_CONSIDER_TO_SWITCH_TO)
+        if path is not None:
+            g.try_switch_path(self.archer, path)
         # Functions
         pos_away_from = lambda target: \
             g.position_away_from_target_using_path(
