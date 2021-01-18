@@ -105,8 +105,7 @@ class WizardStateSkirmishing_TeamA(State):
         
         self.enemy  =  get_enemy_for_cluster_bomb(self.wizard)
     
-        if self.enemy:
-
+        if self.enemy and (self.wizard.current_hp >= HEALTH_PERCENTAGE * (self.wizard.max_hp)):
             if self.enemy.name == "base":
                 self.wizard.ranged_attack(self.enemy.spawn_position, self.wizard.explosion_image)
             else:
@@ -114,12 +113,14 @@ class WizardStateSkirmishing_TeamA(State):
                 #send the explosive to that direction
                 self.wizard.ranged_attack(preaim_position, self.wizard.explosion_image)
               
+        if self.wizard.current_hp < HEALTH_PERCENTAGE * (self.wizard.max_hp):
+            self.wizard.heal()
+        
+        if self.enemy:
             path_pos = g.position_away_from_target_using_path(self.wizard, self.enemy)
             g.set_move_target(self.wizard, path_pos)
             g.update_velocity(self.wizard)
 
-        if self.wizard.current_hp < HEALTH_PERCENTAGE * (self.wizard.max_hp):
-            self.wizard.heal()
     def check_conditions(self):
 
 
