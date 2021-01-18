@@ -1,5 +1,6 @@
 from copy import deepcopy
 from math import sqrt, atan2, sin, cos
+from operator import itemgetter
 from itertools import tee, accumulate
 from functools import reduce
 from typing import Callable, Union, Tuple, List
@@ -77,7 +78,7 @@ def init_hero(hero: Character) -> None:
     hero.move_target = None
     hero.attack_target = None
     hero.paths = get_paths(hero)
-    hero.path = []
+    hero.path = 0
 
 ###  Movement  ###
 def set_move_target(
@@ -178,6 +179,13 @@ def get_entities_that_are(
     return [
         entity for entity in hero.world.entities.values()
         if all(pred(entity) for pred in predicates)]
+
+def get_enemy_heros(hero: Character) -> List[GameEntity]:
+    return get_entities_that_are(hero,
+        lambda entity: enemy_between(entity, hero),
+        lambda entity: entity_type_of_any(
+            entity, archer=True, knight=True, wizard=True),
+        lambda entity: entity_not_ko(entity))
 
 def get_nearest_entity_that_is(
     hero: Character, 
@@ -394,10 +402,10 @@ def ko_check_conditions(hero: Character, respawn_state_name: str) -> Union[None,
 
 ###  Path Finding  ###
 def get_paths(hero: Character) -> List[List[Vector2]]:
-    first  = [1, 2, 3]
+    first  = [0, 1, 2, 3, 4]
     second = [0, 8, 9, 10, 11, 4]
     third  = [0, 8, 12, 13, 11, 4]
-    fourth = [5, 6, 7]
+    fourth = [0, 5, 6, 7, 4]
     return [[
             Vector2(hero.world.graph.nodes[x].position)
             for x in (xs[::-1] if hero.team_id == 1 else xs)]
@@ -409,14 +417,6 @@ def get_paths(hero: Character) -> List[List[Vector2]]:
     #             lambda i: Vector2(hero.world.graph.nodes[i].position),
     #                 xs))),
     #         (first, second, third, fourth)))
-
-def best_path_value_from_position(
-    paths: Tuple[List[Vector2]], position: Vector2) -> Tuple[int, float]:
-    '''Private: Returns most probably path index & the path value of the position'''
-    values, losses = zip(*
-        [path_value_from_position(path, position) for path in paths])
-    path_index = argmin(losses)
-    return path_index, values[path_index]
 
 def path_value_from_position(
     path: List[Vector2], position: Vector2) -> Tuple[float, float]:
@@ -469,10 +469,52 @@ def position_from_path_value(
     p = path[i] + scale_to_length(ab_vectors[i], p_proj)
     return p
 
+def path_value_of_target_from_path(
+    hero: Character, target: Union[Vector2, GameEntity],
+    path: Union[int, List[Vector2]]) -> float:
+    '''Public: Returns path value of target on path'''
+    if isinstance(target, GameEntity): target = target.position
+    if isinstance(path, int): path = hero.paths[path]
+    path_value, loss = path_value_from_position(path, target)
+    return path_value
+
+def best_path_value_from_position(
+    paths: Tuple[List[Vector2]], position: Vector2) -> Tuple[int, float]:
+    '''Private: Returns most probable path index & the path value of the position'''
+    values, losses = zip(*
+        [path_value_from_position(path, position) for path in paths])
+    path_index = argmin(losses)
+    return path_index, values[path_index]
+
 def most_probable_path_that_target_is_on(
     hero: Character, target: Union[Vector2, GameEntity]) -> Tuple[int, float]:
+    '''Public: Returns most probable path index & the path value of the target'''
     if isinstance(target, GameEntity): target = target.position
     return best_path_value_from_position(hero.paths, target)
+
+def paths_sorted_by_entities_most_on_then_nearest_to_base(
+    hero: Character, entities: List[GameEntity]) -> List[int]:
+    '''Public: Returns path indices sorted by most entities on'''
+    assert(len(entities) != 0)
+    n_paths = len(hero.paths)
+    base = get_friendly_base(hero)
+    pis, pvs = zip(*[
+        most_probable_path_that_target_is_on(hero, entity) 
+        for entity in entities])
+    base_pvs = [
+        path_value_of_target_from_path(hero, base, i)
+        for i in range(n_paths)]
+    counts = [0] * n_paths
+    proximities = [float('inf')] * n_paths
+    for pi, pv in zip(pis, pvs):
+        counts[pi] += 1
+        proximities[pi] = min(proximities[pi], abs(pv - base_pvs[pi]))
+    values = list(zip(range(n_paths), counts, proximities))
+    values = multisort(
+        values,
+        keys=[itemgetter(1), itemgetter(2)],
+        reverses=[True, False])
+    return [value[0] for value in values]
 
 def position_towards_target_using_path(
     hero: Character, target: Union[Vector2, GameEntity]) -> Vector2:
@@ -522,6 +564,14 @@ def switch_to_path(
     else:
         raise Exception
 
+def try_switch_path(hero: Character, path: Union[int, List[Vector2]]):
+    if not switchable_to_path(hero, path):
+        path, path_value = most_probable_path_that_target_is_on(hero, hero)
+    switch_to_path(hero, path)
+
+def hero_path_value(hero: Character):
+    return path_value_of_target_from_path(hero, hero, hero.path)
+
 def path_find_astar(
     hero: Character, src: Union[Vector2, GameEntity], 
     dest: Union[Vector2, GameEntity]) -> List[Vector2]:
@@ -564,6 +614,10 @@ def argmin(iterable, key=None):
     i, val = min(enumerate(iterable), key=lambda x: x[1])
     return i
 
+def argmax(iterable, key=None):
+    i, val = max(enumerate(iterable), key=lambda x: x[1])
+    return i
+
 def linspace(start: float, stop: float, num: int) -> List[float]:
     width = (stop - start) / (num - 1)
     return [start + width * i for i in range(num)]
@@ -573,6 +627,20 @@ def get_first_of(iterable):
         return next(iter(iterable))
     except StopIteration:
         return None
+
+def find_first_of(iterable, predicate):
+    return next(filter(predicate, iterable), None)
+
+def item_unique(iterable, item):
+    count = iterable.count(item)
+    if count == 0: raise Exception
+    return count == 1
+
+def multisort(values, keys, reverses):
+    values = values.copy()
+    for key, reverse in zip(reversed(keys), reversed(reverses)):
+        values.sort(key=key, reverse=reverse)
+    return values
 
 def mask_to_surface(mask: Mask, color=(0,0,0,255)) -> Surface:
     width, height = mask.get_size()
