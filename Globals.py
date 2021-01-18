@@ -5,9 +5,9 @@ SPEED_MULTIPLIER = 1.0
 
 RED_MULTIPLIER = 1.15       # Set this to 1.0 for Easy Mode
                             # Set this to 1.15 for Hard Mode
-RED_ARCHER_PATH = 3
-RED_KNIGHT_PATH = 3
-RED_WIZARD_PATH = 3
+RED_ARCHER_PATH = None
+RED_KNIGHT_PATH = None
+RED_WIZARD_PATH = None
 
 SCREEN_WIDTH = 1024
 SCREEN_HEIGHT = 768
