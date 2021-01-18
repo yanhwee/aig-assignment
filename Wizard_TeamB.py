@@ -6,7 +6,8 @@ from Graph import *
 from Character import *
 from State import *
 
-PATH = None
+from Globals import RED_WIZARD_PATH
+PATH = RED_WIZARD_PATH
 
 class Wizard_TeamB(Character):
 
