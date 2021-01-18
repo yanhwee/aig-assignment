@@ -5,7 +5,7 @@ from Character import *
 from State import *
 import g
 
-INITIAL_STATE = 'full_control'
+INITIAL_STATE = 'seeking'
 
 DEFAULT_PATH = 3
 MAX_PATH_VALUE_TO_CONSIDER_TO_SWITCH_PATH = 0.5
