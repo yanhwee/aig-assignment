@@ -202,7 +202,7 @@ class ArcherStateSeeking_TeamA(State):
 
     def path_consider_to_switch_to(self):
         if g.hero_path_value(self.archer) < MAX_PATH_VALUE_TO_CONSIDER_TO_SWITCH_PATH:
-            enemies = g.get_enemy_heros(self.archer)
+            enemies = g.get_enemy_heroes(self.archer)
             if enemies:
                 paths = g.paths_sorted_by_entities_most_on_then_nearest_to_base(
                     self.archer, enemies)
@@ -257,7 +257,7 @@ class ArcherStateFullControl_TeamA(State):
         # Pathfinding
         path = None
         if g.hero_path_value(self.archer) < MAX_PATH_VALUE_TO_CONSIDER_TO_SWITCH_PATH:
-            enemies = g.get_enemy_heros(self.archer)
+            enemies = g.get_enemy_heroes(self.archer)
             if enemies:
                 paths = g.paths_sorted_by_entities_most_on_then_nearest_to_base(
                     self.archer, enemies)
