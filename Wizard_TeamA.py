@@ -9,6 +9,10 @@ import g
 
 DEFAULT_PATH = 3
 HEALTH_PERCENTAGE = 0.8
+MAX_PATH_VALUE_TO_CONSIDER_TO_SWITCH_PATH = 0.5
+NEAR_ENEMY_RETREAT_RADIUS = 190
+PATHS_TO_CONSIDER_TO_SWITCH_TO = [0,3]
+PATHS_TO_CONSIDER_TO_SWITCH_TO = [0,1,2,3]
 
 class Wizard_TeamA(Character):
 
@@ -58,18 +62,28 @@ class WizardStateSeeking_TeamA(State):
         self.wizard = wizard
 
     def entry_actions(self):
+         g.try_switch_path(self.wizard, DEFAULT_PATH)
 
-        if g.switchable_to_path(self.wizard, DEFAULT_PATH):
-            g.switch_to_path(self.wizard, DEFAULT_PATH)
-        else:
-            path_index, path_value = \
-                g.most_probable_path_that_target_is_on(
-                    self.wizard, self.wizard)
-            g.switch_to_path(self.wizard, path_index)
+    def path_consider_to_switch_to(self):
+        if g.hero_path_value(self.wizard) < MAX_PATH_VALUE_TO_CONSIDER_TO_SWITCH_PATH:
+            enemies = g.get_enemy_heros(self.wizard)
+            if enemies:
+                paths = g.paths_sorted_by_entities_most_on_then_nearest_to_base(
+                    self.wizard, enemies)
+                path = g.find_first_of(
+                    paths, lambda path: path in PATHS_TO_CONSIDER_TO_SWITCH_TO)
+                return path
+        return None
+
+    def consider_switch_path(self):
+        path = self.path_consider_to_switch_to()
+        if path is not None:
+            g.try_switch_path(self.wizard, path)
 
     def do_actions(self):
         #Get enemy base
         #moves towards it
+        self.consider_switch_path()
         enemy_base = g.get_enemy_base(self.wizard)
         path_pos = g.position_towards_target_using_path(self.wizard, enemy_base)
         g.set_move_target(self.wizard, path_pos)
@@ -112,14 +126,24 @@ class WizardStateSkirmishing_TeamA(State):
                 preaim_position = g.preaim_entity(self.wizard, self.enemy)
                 #send the explosive to that direction
                 self.wizard.ranged_attack(preaim_position, self.wizard.explosion_image)
-              
+            g.set_move_target(self.wizard, None);
+            #g.update_velocity(self.wizard)
+
         if self.wizard.current_hp < HEALTH_PERCENTAGE * (self.wizard.max_hp):
             self.wizard.heal()
         
-        if self.enemy:
-            path_pos = g.position_away_from_target_using_path(self.wizard, self.enemy)
+        #retreating
+        enemy = g.get_nearest_enemy_that_is(self.wizard,
+            lambda entity: g.within_range_of_target(self.wizard, entity, NEAR_ENEMY_RETREAT_RADIUS),
+            lambda entity: g.in_sight_with_preaimed_target(self.wizard, entity))
+
+        #to prevent the wizard from continuous retreating from two enemies at once
+        if enemy and (g.distance_between(self.wizard.position, enemy.position) < NEAR_ENEMY_RETREAT_RADIUS):
+            path_pos = g.position_away_from_target_using_path(self.wizard,enemy)
             g.set_move_target(self.wizard, path_pos)
-            g.update_velocity(self.wizard)
+            
+
+        g.update_velocity(self.wizard)     
 
     def check_conditions(self):
 
