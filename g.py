@@ -124,6 +124,9 @@ def calculate_preaim_collision(
     '''Private: Calculate the intersection of two position and velocity with speed'''
     p = p2 - p1
     a = v.magnitude_squared() - s ** 2
+    if a == 0:
+        print('WARN: a is zero')
+        return p2
     b = 2 * p.dot(v)
     c = p.magnitude_squared()
     d = b ** 2 - 4 * a * c
