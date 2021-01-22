@@ -180,11 +180,19 @@ def get_entities_that_are(
         entity for entity in hero.world.entities.values()
         if all(pred(entity) for pred in predicates)]
 
-def get_enemy_heros(hero: Character) -> List[GameEntity]:
+def get_enemy_heroes(hero: Character) -> List[GameEntity]:
     return get_entities_that_are(hero,
         lambda entity: enemy_between(entity, hero),
         lambda entity: entity_type_of_any(
             entity, archer=True, knight=True, wizard=True),
+        lambda entity: entity_not_ko(entity))
+
+def get_enemy_heroes_and_orcs(
+    hero: Character, ) -> List[GameEntity]:
+    return get_entities_that_are(hero,
+        lambda entity: enemy_between(entity, hero),
+        lambda entity: entity_type_of_any(
+            entity, archer=True, knight=True, wizard=True, orc=True),
         lambda entity: entity_not_ko(entity))
 
 def get_nearest_entity_that_is(
@@ -402,10 +410,10 @@ def ko_check_conditions(hero: Character, respawn_state_name: str) -> Union[None,
 
 ###  Path Finding  ###
 def get_paths(hero: Character) -> List[List[Vector2]]:
-    first  = [0, 1, 2, 3, 4]
+    first  = [1, 2, 3]
     second = [0, 8, 9, 10, 11, 4]
     third  = [0, 8, 12, 13, 11, 4]
-    fourth = [0, 5, 6, 7, 4]
+    fourth = [5, 6, 7]
     return [[
             Vector2(hero.world.graph.nodes[x].position)
             for x in (xs[::-1] if hero.team_id == 1 else xs)]
@@ -532,15 +540,18 @@ def position_away_from_target_using_path(
 
 def path_position_a_to_b(
     path: List[Vector2], a: Vector2, b: Vector2, towards: bool,
-    epsilon=9e-2, proximity_threshold=-1) -> Vector2:
+    epsilon=1e-1, proximity_threshold=-1, loss_threshold=50) -> Vector2:
     '''Private: Returns a position on the path towards or away from target'''
     a_pv, a_loss = path_value_from_position(path, a)
     b_pv, b_loss = path_value_from_position(path, b)
-    a_pv += (b_pv - a_pv) * epsilon * (1 if towards else -1)
+    c_pv = a_pv + (b_pv - a_pv) * epsilon * (1 if towards else -1)
     if towards and (abs(a_pv - b_pv) <= proximity_threshold):
         return b
-    if 0 <= a_pv <= 1:
-        return position_from_path_value(path, a_pv)
+    if 0 <= c_pv <= 1:
+        if a_loss <= loss_threshold:
+            return position_from_path_value(path, c_pv)
+        else:
+            return position_from_path_value(path, a_pv)
     else:
         return b if towards else 2 * a - b
 
@@ -550,7 +561,7 @@ def switchable_to_path(
     if isinstance(path, int): path = hero.paths[path]
     pv, loss = path_value_from_position(path, hero.position)
     path_pos = position_from_path_value(path, pv)
-    return in_sight_with_target(hero, path_pos, size=45)
+    return in_sight_with_target(hero, path_pos, size=20)
 
 def switch_to_path(
     hero: Character, path: Union[int, List[Vector2]]) -> None:
