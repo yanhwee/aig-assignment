@@ -542,7 +542,7 @@ def position_away_from_target_using_path(
 
 def path_position_a_to_b(
     path: List[Vector2], a: Vector2, b: Vector2, towards: bool,
-    epsilon=2e-1, proximity_threshold=-1, loss_threshold=60) -> Vector2:
+    epsilon=1e-1, proximity_threshold=-1, loss_threshold=40) -> Vector2:
     '''Private: Returns a position on the path towards or away from target'''
     a_pv, a_loss = path_value_from_position(path, a)
     b_pv, b_loss = path_value_from_position(path, b)
