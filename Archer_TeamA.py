@@ -200,7 +200,7 @@ class ArcherStateSeeking_TeamA(State):
     def entry_actions(self):
         g.try_switch_path(self.archer, DEFAULT_PATH)
 
-    def path_consider_to_switch_to(self):
+    def consider_which_path_to_switch_to(self):
         if g.hero_path_value(self.archer) < MAX_PATH_VALUE_TO_CONSIDER_TO_SWITCH_PATH:
             enemies = g.get_enemy_heroes(self.archer)
             if enemies:
@@ -211,13 +211,10 @@ class ArcherStateSeeking_TeamA(State):
                 return path
         return None
 
-    def consider_switch_path(self):
-        path = self.path_consider_to_switch_to()
+    def do_actions(self):
+        path = self.consider_which_path_to_switch_to()
         if path is not None:
             g.try_switch_path(self.archer, path)
-
-    def do_actions(self):
-        self.consider_switch_path()
         #
         projectile = self.archer.nearest_projectile_in_sight()
         enemy_base = self.archer.get_enemy_base()
