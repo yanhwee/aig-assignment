@@ -8,6 +8,9 @@ from State import *
 import g
 
 DEFAULT_PATH = 3
+MAX_PATH_VALUE_TO_CONSIDER_TO_SWITCH_PATH = 0.5
+PATHS_TO_CONSIDER_TO_SWITCH_TO = [0,1,2,3]
+
 KNIGHT_SENSING_RADIUS = KNIGHT_MIN_TARGET_DISTANCE
 KNIGHT_HEALING_THRESHOLD_LIST = [40,70,65,60]
 KNIGHT_HEALING_THRESHOLD = KNIGHT_HEALING_THRESHOLD_LIST[0]
@@ -63,16 +66,25 @@ class KnightStateSeeking_TeamA(State):
         self.knight = knight
 
     def entry_actions(self):
+        g.try_switch_path(self.knight, DEFAULT_PATH)
 
-        if g.switchable_to_path(self.knight, DEFAULT_PATH):
-            g.switch_to_path(self.knight, DEFAULT_PATH)
-        else:
-            path_index, path_value = \
-                g.most_probable_path_that_target_is_on(
-                    self.knight, self.knight)
-            g.switch_to_path(self.knight, path_index)
+    def path_consider_to_switch_to(self):
+        if g.hero_path_value(self.knight) < MAX_PATH_VALUE_TO_CONSIDER_TO_SWITCH_PATH:
+            enemies = g.get_enemy_heroes(self.knight)
+            if enemies:
+                paths = g.paths_sorted_by_entities_most_on_then_nearest_to_base(
+                    self.knight,enemies)
+                path = g.find_first_of(paths,
+                    lambda path:path in PATHS_TO_CONSIDER_TO_SWITCH_TO)
+                return path
+        return None
 
     def do_actions(self):
+        #check path to switch to
+        path = self.path_consider_to_switch_to()
+        if path is not None:
+            g.try_switch_path(self.knight, path)
+
         #check if hp is full
         if self.knight.current_hp != self.knight.max_hp:
             self.knight.heal()

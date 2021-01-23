@@ -88,9 +88,15 @@ class WizardStateSeeking_TeamA(State):
         path_pos = g.position_towards_target_using_path(self.wizard, enemy_base)
         g.set_move_target(self.wizard, path_pos)
         g.update_velocity(self.wizard)
+
+        enemy = g.get_nearest_enemy_that_is(self.wizard,
+            lambda entity: g.within_range_of_target(self.wizard, entity, NEAR_ENEMY_RETREAT_RADIUS),
+            lambda entity: g.in_sight_with_preaimed_target(self.wizard, entity))
+
        
-        if self.wizard.current_hp < HEALTH_PERCENTAGE * (self.wizard.max_hp):
+        if self.wizard.current_hp < HEALTH_PERCENTAGE * (self.wizard.max_hp) and enemy is None:
             self.wizard.heal()
+            
     def check_conditions(self):
 
         enemy = get_enemy_for_cluster_bomb(self.wizard)
@@ -119,7 +125,7 @@ class WizardStateSkirmishing_TeamA(State):
         
         self.enemy  =  get_enemy_for_cluster_bomb(self.wizard)
     
-        if self.enemy and (self.wizard.current_hp >= HEALTH_PERCENTAGE * (self.wizard.max_hp)):
+        if self.enemy:
             if self.enemy.name == "base":
                 self.wizard.ranged_attack(self.enemy.spawn_position, self.wizard.explosion_image)
             else:
@@ -129,9 +135,7 @@ class WizardStateSkirmishing_TeamA(State):
             g.set_move_target(self.wizard, None);
             #g.update_velocity(self.wizard)
 
-        if self.wizard.current_hp < HEALTH_PERCENTAGE * (self.wizard.max_hp):
-            self.wizard.heal()
-        
+      
         #retreating
         enemy = g.get_nearest_enemy_that_is(self.wizard,
             lambda entity: g.within_range_of_target(self.wizard, entity, NEAR_ENEMY_RETREAT_RADIUS),
@@ -142,7 +146,9 @@ class WizardStateSkirmishing_TeamA(State):
             path_pos = g.position_away_from_target_using_path(self.wizard,enemy)
             g.set_move_target(self.wizard, path_pos)
             
-
+        if self.wizard.current_hp < HEALTH_PERCENTAGE * (self.wizard.max_hp) and enemy is None:
+            self.wizard.heal()
+        
         g.update_velocity(self.wizard)     
 
     def check_conditions(self):
