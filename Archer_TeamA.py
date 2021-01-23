@@ -53,6 +53,9 @@ class Archer_TeamA(Character):
         self.brain.set_state(INITIAL_STATE)
 
     def render(self, surface):
+        # enemy = self.nearest_enemy_in_sight()
+        # if enemy:
+        #     g.render_line_of_sight(self, enemy, surface, size=40)
         Character.render(self, surface)
 
     def process(self, time_passed):
