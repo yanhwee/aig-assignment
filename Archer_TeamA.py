@@ -9,7 +9,7 @@ INITIAL_STATE = 'seeking'
 
 DEFAULT_PATH = 3
 MAX_PATH_VALUE_TO_CONSIDER_TO_SWITCH_PATH = 0.5
-PATHS_TO_CONSIDER_TO_SWITCH_TO = [0,1,2,3]
+PATHS_TO_CONSIDER_TO_SWITCH_TO = [0,3]
 
 LOW_HP = 75
 # HIGH_HP = 200
@@ -36,6 +36,7 @@ class Archer_TeamA(Character):
         ## Mutable
         # G Init
         g.init_hero(self)
+        g.switch_to_path(self, DEFAULT_PATH)
         # State Machine
         full_control_state = ArcherStateFullControl_TeamA(self)
         healing_state = ArcherStateHealing_TeamA(self)
@@ -198,7 +199,7 @@ class ArcherStateSeeking_TeamA(State):
         self.archer = archer
 
     def entry_actions(self):
-        g.try_switch_path(self.archer, DEFAULT_PATH)
+        pass
 
     def consider_which_path_to_switch_to(self):
         if g.hero_path_value(self.archer) < MAX_PATH_VALUE_TO_CONSIDER_TO_SWITCH_PATH:
@@ -248,7 +249,7 @@ class ArcherStateFullControl_TeamA(State):
         self.archer = archer
 
     def entry_actions(self):
-        g.try_switch_path(self.archer, DEFAULT_PATH)
+        pass
     
     def do_actions(self):
         # Pathfinding
