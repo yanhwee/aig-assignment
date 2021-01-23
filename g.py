@@ -190,8 +190,7 @@ def get_enemy_heroes(hero: Character) -> List[GameEntity]:
             entity, archer=True, knight=True, wizard=True),
         lambda entity: entity_not_ko(entity))
 
-def get_enemy_heroes_and_orcs(
-    hero: Character, ) -> List[GameEntity]:
+def get_enemy_heroes_and_orcs(hero: Character) -> List[GameEntity]:
     return get_entities_that_are(hero,
         lambda entity: enemy_between(entity, hero),
         lambda entity: entity_type_of_any(
@@ -543,7 +542,7 @@ def position_away_from_target_using_path(
 
 def path_position_a_to_b(
     path: List[Vector2], a: Vector2, b: Vector2, towards: bool,
-    epsilon=1e-1, proximity_threshold=-1, loss_threshold=50) -> Vector2:
+    epsilon=2e-1, proximity_threshold=-1, loss_threshold=60) -> Vector2:
     '''Private: Returns a position on the path towards or away from target'''
     a_pv, a_loss = path_value_from_position(path, a)
     b_pv, b_loss = path_value_from_position(path, b)
@@ -584,7 +583,11 @@ def try_switch_path(hero: Character, path: Union[int, List[Vector2]]):
     switch_to_path(hero, path)
 
 def hero_path_value(hero: Character):
-    return path_value_of_target_from_path(hero, hero, hero.path)
+    base_pv = path_value_of_target_from_path(
+        hero, get_friendly_base(hero), hero.path)
+    hero_pv = path_value_of_target_from_path(
+        hero, hero, hero.path)
+    return abs(hero_pv - base_pv)
 
 def path_find_astar(
     hero: Character, src: Union[Vector2, GameEntity], 
