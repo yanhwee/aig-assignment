@@ -189,7 +189,7 @@ def get_friendly_hero(
     return get_first_of(get_entities_that_are(hero, 
         lambda entity: friendly_between(entity, hero),
         lambda entity: entity_type_of_any(
-            archer=archer, knight=knight, wizard=wizard),
+            entity, archer=archer, knight=knight, wizard=wizard),
         lambda entity: entity_not_ko(entity)))
 
 def get_enemy_heroes(hero: Character) -> List[GameEntity]:
