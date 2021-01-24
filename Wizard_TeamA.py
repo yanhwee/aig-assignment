@@ -12,7 +12,7 @@ HEALTH_PERCENTAGE = 0.8
 MAX_PATH_VALUE_TO_CONSIDER_TO_SWITCH_PATH = 0.5
 NEAR_ENEMY_RETREAT_RADIUS = 190
 PATHS_TO_CONSIDER_TO_SWITCH_TO = [0,3]
-PATHS_TO_CONSIDER_TO_SWITCH_TO = [0,1,2,3]
+#PATHS_TO_CONSIDER_TO_SWITCH_TO = [0,1,2,3]
 
 class Wizard_TeamA(Character):
 
@@ -30,7 +30,7 @@ class Wizard_TeamA(Character):
         seeking_state = WizardStateSeeking_TeamA(self)
         attacking_state = WizardStateSkirmishing_TeamA(self)
         ko_state = WizardStateKO_TeamA(self)
-
+        g.try_switch_path(self, DEFAULT_PATH)
         self.brain.add_state(seeking_state)
         self.brain.add_state(attacking_state)
         self.brain.add_state(ko_state)
@@ -62,7 +62,7 @@ class WizardStateSeeking_TeamA(State):
         self.wizard = wizard
 
     def entry_actions(self):
-         g.try_switch_path(self.wizard, DEFAULT_PATH)
+        pass
 
     def path_consider_to_switch_to(self):
         if g.hero_path_value(self.wizard) < MAX_PATH_VALUE_TO_CONSIDER_TO_SWITCH_PATH:
