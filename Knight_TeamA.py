@@ -12,8 +12,7 @@ MAX_PATH_VALUE_TO_CONSIDER_TO_SWITCH_PATH = 0.5
 PATHS_TO_CONSIDER_TO_SWITCH_TO = [0,1,2,3]
 
 KNIGHT_SENSING_RADIUS = KNIGHT_MIN_TARGET_DISTANCE
-KNIGHT_HEALING_THRESHOLD_LIST = [40,70,65,60]
-KNIGHT_HEALING_THRESHOLD = KNIGHT_HEALING_THRESHOLD_LIST[0]
+KNIGHT_HEALING_THRESHOLD_LIST = [40,60,70,65,60]
 
 class Knight_TeamA(Character):
 
@@ -23,8 +22,11 @@ class Knight_TeamA(Character):
 
         self.base = base
         self.position = position
+        self.level = 1
+        self.healing_threshold = KNIGHT_HEALING_THRESHOLD_LIST[0]
 
         g.init_hero(self)
+        g.try_switch_path(self, DEFAULT_PATH)
 
         #State Machine
         seeking_state = KnightStateSeeking_TeamA(self)
@@ -48,13 +50,13 @@ class Knight_TeamA(Character):
     def process(self, time_passed):
         
         Character.process(self, time_passed)
-        level = 1
         if self.can_level_up():
-            level += 1
-            if level < len(KNIGHT_HEALING_THRESHOLD_LIST):
-                KNIGHT_HEALING_THRESHOLD = KNIGHT_HEALING_THRESHOLD_LIST[level-1]
+            self.level += 1
+            if self.level < len(KNIGHT_HEALING_THRESHOLD_LIST):
+                self.healing_threshold = KNIGHT_HEALING_THRESHOLD_LIST[self.level-1]
+                print(self.healing_threshold)
             else:
-                KNIGHT_HEALING_THRESHOLD = KNIGHT_HEALING_THRESHOLD_LIST[-1]
+                self.healing_threshold = KNIGHT_HEALING_THRESHOLD_LIST[-1]
             self.level_up('healing') 
 
 
@@ -66,22 +68,25 @@ class KnightStateSeeking_TeamA(State):
         self.knight = knight
 
     def entry_actions(self):
-        g.try_switch_path(self.knight, DEFAULT_PATH)
+        pass
 
-    def path_consider_to_switch_to(self):
-        if g.hero_path_value(self.knight) < MAX_PATH_VALUE_TO_CONSIDER_TO_SWITCH_PATH:
-            enemies = g.get_enemy_heroes(self.knight)
-            if enemies:
-                paths = g.paths_sorted_by_entities_most_on_then_nearest_to_base(
-                    self.knight,enemies)
-                path = g.find_first_of(paths,
-                    lambda path:path in PATHS_TO_CONSIDER_TO_SWITCH_TO)
-                return path
+    def consider_which_path_to_switch_to(self):
+        wizard = g.get_friendly_hero(self.knight, wizard=True)
+        archer = g.get_friendly_hero(self.knight, archer=True)
+        if wizard:
+            path_index, path_value = g.most_probable_path_that_target_is_on(self.knight,wizard)
+            if g.switchable_to_path(self.knight,path_index):
+                return path_index
+        if archer:
+            path_index, path_value = g.most_probable_path_that_target_is_on(self.knight,archer)
+            if g.switchable_to_path(self.knight,path_index):
+                return path_index
+
         return None
 
     def do_actions(self):
         #check path to switch to
-        path = self.path_consider_to_switch_to()
+        path = self.consider_which_path_to_switch_to()
         if path is not None:
             g.try_switch_path(self.knight, path)
 
@@ -90,8 +95,13 @@ class KnightStateSeeking_TeamA(State):
             self.knight.heal()
         
         #Move towards base
-        enemy_base = g.get_enemy_base(self.knight)
-        path_pos = g.position_towards_target_using_path(self.knight,enemy_base)
+        if path is not None:     
+            enemy_base = g.get_enemy_base(self.knight)
+            path_pos = g.position_towards_target_using_path(self.knight,enemy_base)
+        else:
+            friendly_base = g.get_friendly_base(self.knight)
+            path_pos = g.position_towards_target_using_path(self.knight,friendly_base)
+  
         g.set_move_target(self.knight,path_pos)
         g.update_velocity(self.knight)
 
@@ -151,7 +161,9 @@ class KnightStateAttacking_TeamA(State):
             return "seeking"
         
         # if knight's health below a certain threshold, heal
-        if self.knight.current_hp/self.knight.max_hp *100 <= KNIGHT_HEALING_THRESHOLD:
+        health = self.knight.current_hp/self.knight.max_hp *100
+        if health <= self.knight.healing_threshold:
+            print("Going to healing", health, self.knight.healing_threshold)
             return "healing"
 
         return None
@@ -206,7 +218,9 @@ class KnightStateHealing_TeamA(State):
             return "seeking"
         
         # if knight's health above a certain threshold, attack
-        if self.knight.current_hp/self.knight.max_hp *100 > KNIGHT_HEALING_THRESHOLD:
+        health = self.knight.current_hp/self.knight.max_hp *100
+        if health > self.knight.healing_threshold:
+            print("Going to attacking", health, self.knight.healing_threshold)
             return "attacking"
 
 # Helper Functions
