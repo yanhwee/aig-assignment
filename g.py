@@ -183,6 +183,15 @@ def get_entities_that_are(
         entity for entity in hero.world.entities.values()
         if all(pred(entity) for pred in predicates)]
 
+def get_friendly_hero(
+    hero: Character, archer=False,
+    knight=False, wizard=False) -> Union[None, Character]:
+    return get_first_of(get_entities_that_are(hero, 
+        lambda entity: friendly_between(entity, hero),
+        lambda entity: entity_type_of_any(
+            archer=archer, knight=knight, wizard=wizard),
+        lambda entity: entity_not_ko(entity)))
+
 def get_enemy_heroes(hero: Character) -> List[GameEntity]:
     return get_entities_that_are(hero,
         lambda entity: enemy_between(entity, hero),
