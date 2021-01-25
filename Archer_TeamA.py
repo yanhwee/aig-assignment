@@ -38,13 +38,13 @@ class Archer_TeamA(Character):
         g.init_hero(self)
         g.switch_to_path(self, DEFAULT_PATH)
         # State Machine
-        full_control_state = ArcherStateFullControl_TeamA(self)
+        # full_control_state = ArcherStateFullControl_TeamA(self)
         healing_state = ArcherStateHealing_TeamA(self)
         base_attacking_state = ArcherStateBaseAttacking_TeamA(self)
         attacking_state = ArcherStateAttacking_TeamA(self)
         seeking_state = ArcherStateSeeking_TeamA(self)
         ko_state = ArcherStateKO_TeamA(self)
-        self.brain.add_state(full_control_state)
+        # self.brain.add_state(full_control_state)
         self.brain.add_state(healing_state)
         self.brain.add_state(base_attacking_state)
         self.brain.add_state(attacking_state)
@@ -246,85 +246,85 @@ class ArcherStateKO_TeamA(State):
     def check_conditions(self):
         return g.ko_check_conditions(self.archer, INITIAL_STATE)
 
-class ArcherStateFullControl_TeamA(State):
-    def __init__(self, archer):
-        State.__init__(self, 'full_control')
-        self.archer = archer
+# class ArcherStateFullControl_TeamA(State):
+#     def __init__(self, archer):
+#         State.__init__(self, 'full_control')
+#         self.archer = archer
 
-    def entry_actions(self):
-        pass
+#     def entry_actions(self):
+#         pass
     
-    def do_actions(self):
-        # Pathfinding
-        path = None
-        if g.hero_path_value(self.archer) < MAX_PATH_VALUE_TO_CONSIDER_TO_SWITCH_PATH:
-            enemies = g.get_enemy_heroes(self.archer)
-            if enemies:
-                paths = g.paths_sorted_by_entities_most_on_then_nearest_to_base(
-                    self.archer, enemies)
-                path = g.find_first_of(
-                    paths, lambda path: path in PATHS_TO_CONSIDER_TO_SWITCH_TO)
-        if path is not None:
-            g.try_switch_path(self.archer, path)
-        # Functions
-        pos_away_from = lambda target: \
-            g.position_away_from_target_using_path(
-                self.archer, target)
-        pos_towards = lambda target: \
-            g.position_towards_target_using_path(
-                self.archer, target)
-        move_away_from = lambda target: \
-            g.set_move_target(self.archer, pos_away_from(target))
-        move_towards = lambda target: \
-            g.set_move_target(self.archer, pos_towards(target))
-        dont_move = lambda: g.set_move_target(self.archer, None)
-        near_to = lambda target, radius: \
-            target and g.within_range_of_target_edge(self.archer, target, radius)
-        # Variables
-        enemy_base = g.get_enemy_base(self.archer)
-        projectile = g.get_nearest_non_friendly_projectile_that_is(self.archer,
-            lambda entity: g.in_sight_with_target(self.archer, entity))
-        enemy = g.get_nearest_enemy_that_is(self.archer,
-            lambda entity: g.in_sight_with_target(self.archer, entity))
-        enemy2 = g.get_nearest_enemy_that_is(self.archer,
-            lambda entity: g.in_sight_with_preaimed_target(self.archer, entity))
-        low_hp = self.archer.current_hp <= LOW_HP
-        # Heal
-        if low_hp and not near_to(enemy, HEALING_NO_ENEMY_RADIUS):
-            self.archer.heal()
-            if near_to(projectile, HEALING_PROJECTILE_RETREAT_RADIUS):
-                move_away_from(projectile)
-            elif near_to(enemy, HEALING_ENEMY_RETREAT_RADIUS):
-                move_away_from(enemy)
-            else:
-                move_towards(enemy_base)
-        # Attack Base
-        elif near_to(enemy_base, None):
-            self.archer.ranged_attack(enemy_base.position)
-            if near_to(projectile, BASE_ATTACKING_PROJECTILE_RETREAT_RADIUS):
-                move_away_from(projectile)
-            elif near_to(enemy, BASE_ATTACKING_ENEMY_RETREAT_RADIUS):
-                move_away_from(enemy)
-            else:
-                dont_move()
-        # Attack Enemy
-        elif near_to(enemy2, None):
-            preaim_pos = g.preaim_entity(self.archer, enemy2)
-            self.archer.ranged_attack(preaim_pos)
-            if near_to(projectile, ATTACKING_PROJECTILE_RETREAT_RADIUS):
-                move_away_from(projectile)
-            elif near_to(enemy, ATTACKING_ENEMY_RETREAT_RADIUS):
-                move_away_from(enemy)
-            else:
-                dont_move()
-        # Seek
-        else:
-            if near_to(projectile, SEEKING_PROJECTILE_RETREAT_RADIUS):
-                move_away_from(projectile)
-            else:
-                move_towards(enemy_base)
-        # Update Velocity
-        g.update_velocity(self.archer)
+#     def do_actions(self):
+#         # Pathfinding
+#         path = None
+#         if g.hero_path_value(self.archer) < MAX_PATH_VALUE_TO_CONSIDER_TO_SWITCH_PATH:
+#             enemies = g.get_enemy_heroes(self.archer)
+#             if enemies:
+#                 paths = g.paths_sorted_by_entities_most_on_then_nearest_to_base(
+#                     self.archer, enemies)
+#                 path = g.find_first_of(
+#                     paths, lambda path: path in PATHS_TO_CONSIDER_TO_SWITCH_TO)
+#         if path is not None:
+#             g.try_switch_path(self.archer, path)
+#         # Functions
+#         pos_away_from = lambda target: \
+#             g.position_away_from_target_using_path(
+#                 self.archer, target)
+#         pos_towards = lambda target: \
+#             g.position_towards_target_using_path(
+#                 self.archer, target)
+#         move_away_from = lambda target: \
+#             g.set_move_target(self.archer, pos_away_from(target))
+#         move_towards = lambda target: \
+#             g.set_move_target(self.archer, pos_towards(target))
+#         dont_move = lambda: g.set_move_target(self.archer, None)
+#         near_to = lambda target, radius: \
+#             target and g.within_range_of_target_edge(self.archer, target, radius)
+#         # Variables
+#         enemy_base = g.get_enemy_base(self.archer)
+#         projectile = g.get_nearest_non_friendly_projectile_that_is(self.archer,
+#             lambda entity: g.in_sight_with_target(self.archer, entity))
+#         enemy = g.get_nearest_enemy_that_is(self.archer,
+#             lambda entity: g.in_sight_with_target(self.archer, entity))
+#         enemy2 = g.get_nearest_enemy_that_is(self.archer,
+#             lambda entity: g.in_sight_with_preaimed_target(self.archer, entity))
+#         low_hp = self.archer.current_hp <= LOW_HP
+#         # Heal
+#         if low_hp and not near_to(enemy, HEALING_NO_ENEMY_RADIUS):
+#             self.archer.heal()
+#             if near_to(projectile, HEALING_PROJECTILE_RETREAT_RADIUS):
+#                 move_away_from(projectile)
+#             elif near_to(enemy, HEALING_ENEMY_RETREAT_RADIUS):
+#                 move_away_from(enemy)
+#             else:
+#                 move_towards(enemy_base)
+#         # Attack Base
+#         elif near_to(enemy_base, None):
+#             self.archer.ranged_attack(enemy_base.position)
+#             if near_to(projectile, BASE_ATTACKING_PROJECTILE_RETREAT_RADIUS):
+#                 move_away_from(projectile)
+#             elif near_to(enemy, BASE_ATTACKING_ENEMY_RETREAT_RADIUS):
+#                 move_away_from(enemy)
+#             else:
+#                 dont_move()
+#         # Attack Enemy
+#         elif near_to(enemy2, None):
+#             preaim_pos = g.preaim_entity(self.archer, enemy2)
+#             self.archer.ranged_attack(preaim_pos)
+#             if near_to(projectile, ATTACKING_PROJECTILE_RETREAT_RADIUS):
+#                 move_away_from(projectile)
+#             elif near_to(enemy, ATTACKING_ENEMY_RETREAT_RADIUS):
+#                 move_away_from(enemy)
+#             else:
+#                 dont_move()
+#         # Seek
+#         else:
+#             if near_to(projectile, SEEKING_PROJECTILE_RETREAT_RADIUS):
+#                 move_away_from(projectile)
+#             else:
+#                 move_towards(enemy_base)
+#         # Update Velocity
+#         g.update_velocity(self.archer)
 
-    def check_conditions(self):
-        return None
+#     def check_conditions(self):
+#         return None
