@@ -14,7 +14,7 @@ NEAR_ENEMY_RETREAT_RADIUS = 190
 PATHS_TO_CONSIDER_TO_SWITCH_TO = [0,3]
 #PATHS_TO_CONSIDER_TO_SWITCH_TO = [0,1,2,3]
 
-class Wizard_TeamA(Character):
+class Wizard_Spartan(Character):
 
     def __init__(self, world, image, projectile_image, base, position, explosion_image = None):
 
@@ -27,9 +27,9 @@ class Wizard_TeamA(Character):
         self.position = position
         #Initializes hero with more custom variables
         g.init_hero(self)
-        seeking_state = WizardStateSeeking_TeamA(self)
-        attacking_state = WizardStateSkirmishing_TeamA(self)
-        ko_state = WizardStateKO_TeamA(self)
+        seeking_state = WizardStateSeeking_Spartan(self)
+        attacking_state = WizardStateSkirmishing_Spartan(self)
+        ko_state = WizardStateKO_Spartan(self)
         g.try_switch_path(self, DEFAULT_PATH)
         self.brain.add_state(seeking_state)
         self.brain.add_state(attacking_state)
@@ -54,7 +54,7 @@ class Wizard_TeamA(Character):
 
 
 
-class WizardStateSeeking_TeamA(State):
+class WizardStateSeeking_Spartan(State):
 
     def __init__(self, wizard):
 
@@ -104,7 +104,7 @@ class WizardStateSeeking_TeamA(State):
        
 
     
-class WizardStateSkirmishing_TeamA(State):
+class WizardStateSkirmishing_Spartan(State):
 
     def __init__(self, wizard):
 
@@ -156,7 +156,7 @@ class WizardStateSkirmishing_TeamA(State):
         self.enemy = None
 
 
-class WizardStateKO_TeamA(State):
+class WizardStateKO_Spartan(State):
 
     def __init__(self, wizard):
 

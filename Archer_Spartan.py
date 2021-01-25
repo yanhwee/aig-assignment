@@ -26,7 +26,7 @@ ATTACKING_ENEMY_RETREAT_RADIUS = 185
 
 SEEKING_PROJECTILE_RETREAT_RADIUS = 140
 
-class Archer_TeamA(Character):
+class Archer_Spartan(Character):
     def __init__(self, world, image, projectile_image, base, position):
         ## Immutable
         Character.__init__(self, world, "archer", image)
@@ -38,12 +38,12 @@ class Archer_TeamA(Character):
         g.init_hero(self)
         g.switch_to_path(self, DEFAULT_PATH)
         # State Machine
-        # full_control_state = ArcherStateFullControl_TeamA(self)
-        healing_state = ArcherStateHealing_TeamA(self)
-        base_attacking_state = ArcherStateBaseAttacking_TeamA(self)
-        attacking_state = ArcherStateAttacking_TeamA(self)
-        seeking_state = ArcherStateSeeking_TeamA(self)
-        ko_state = ArcherStateKO_TeamA(self)
+        # full_control_state = ArcherStateFullControl_Spartan(self)
+        healing_state = ArcherStateHealing_Spartan(self)
+        base_attacking_state = ArcherStateBaseAttacking_Spartan(self)
+        attacking_state = ArcherStateAttacking_Spartan(self)
+        seeking_state = ArcherStateSeeking_Spartan(self)
+        ko_state = ArcherStateKO_Spartan(self)
         # self.brain.add_state(full_control_state)
         self.brain.add_state(healing_state)
         self.brain.add_state(base_attacking_state)
@@ -118,8 +118,8 @@ class Archer_TeamA(Character):
         else:
             return 'seeking'
 
-class ArcherStateHealing_TeamA(State):
-    def __init__(self, archer: Archer_TeamA):
+class ArcherStateHealing_Spartan(State):
+    def __init__(self, archer: Archer_Spartan):
         State.__init__(self, 'healing')
         self.archer = archer
 
@@ -143,8 +143,8 @@ class ArcherStateHealing_TeamA(State):
         state = self.archer.common_check_conditions()
         return None if state == 'healing' else state
 
-class ArcherStateBaseAttacking_TeamA(State):
-    def __init__(self, archer: Archer_TeamA):
+class ArcherStateBaseAttacking_Spartan(State):
+    def __init__(self, archer: Archer_Spartan):
         State.__init__(self, 'base_attacking')
         self.archer = archer
 
@@ -169,8 +169,8 @@ class ArcherStateBaseAttacking_TeamA(State):
         state = self.archer.common_check_conditions()
         return None if state == 'base_attacking' else state
 
-class ArcherStateAttacking_TeamA(State):
-    def __init__(self, archer: Archer_TeamA):
+class ArcherStateAttacking_Spartan(State):
+    def __init__(self, archer: Archer_Spartan):
         State.__init__(self, 'attacking')
         self.archer = archer
 
@@ -196,8 +196,8 @@ class ArcherStateAttacking_TeamA(State):
         state = self.archer.common_check_conditions()
         return None if state == 'attacking' else state
 
-class ArcherStateSeeking_TeamA(State):
-    def __init__(self, archer: Archer_TeamA):
+class ArcherStateSeeking_Spartan(State):
+    def __init__(self, archer: Archer_Spartan):
         State.__init__(self, 'seeking')
         self.archer = archer
 
@@ -232,8 +232,8 @@ class ArcherStateSeeking_TeamA(State):
         state = self.archer.common_check_conditions()
         return None if state == 'seeking' else state
 
-class ArcherStateKO_TeamA(State):
-    def __init__(self, archer: Archer_TeamA):
+class ArcherStateKO_Spartan(State):
+    def __init__(self, archer: Archer_Spartan):
         State.__init__(self, "ko")
         self.archer = archer
 
@@ -246,7 +246,7 @@ class ArcherStateKO_TeamA(State):
     def check_conditions(self):
         return g.ko_check_conditions(self.archer, INITIAL_STATE)
 
-# class ArcherStateFullControl_TeamA(State):
+# class ArcherStateFullControl_Spartan(State):
 #     def __init__(self, archer):
 #         State.__init__(self, 'full_control')
 #         self.archer = archer

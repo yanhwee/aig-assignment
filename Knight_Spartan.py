@@ -12,7 +12,7 @@ DEFAULT_PATH = 3
 KNIGHT_SENSING_RADIUS = KNIGHT_MIN_TARGET_DISTANCE
 KNIGHT_HEALING_THRESHOLD_LIST = [40,60,70,65,60]
 
-class Knight_TeamA(Character):
+class Knight_Spartan(Character):
 
     def __init__(self, world, image, base, position):
 
@@ -27,10 +27,10 @@ class Knight_TeamA(Character):
         g.try_switch_path(self, DEFAULT_PATH)
 
         #State Machine
-        seeking_state = KnightStateSeeking_TeamA(self)
-        attacking_state = KnightStateAttacking_TeamA(self)
-        ko_state = KnightStateKO_TeamA(self)
-        healing_state = KnightStateHealing_TeamA(self)
+        seeking_state = KnightStateSeeking_Spartan(self)
+        attacking_state = KnightStateAttacking_Spartan(self)
+        ko_state = KnightStateKO_Spartan(self)
+        healing_state = KnightStateHealing_Spartan(self)
 
         self.brain.add_state(seeking_state)
         self.brain.add_state(attacking_state)
@@ -57,7 +57,7 @@ class Knight_TeamA(Character):
             self.level_up('healing') 
 
 
-class KnightStateSeeking_TeamA(State):
+class KnightStateSeeking_Spartan(State):
 
     def __init__(self, knight):
 
@@ -113,7 +113,7 @@ class KnightStateSeeking_TeamA(State):
         return None
 
 
-class KnightStateAttacking_TeamA(State):
+class KnightStateAttacking_Spartan(State):
 
     def __init__(self, knight):
 
@@ -165,7 +165,7 @@ class KnightStateAttacking_TeamA(State):
         return None
 
 
-class KnightStateKO_TeamA(State):
+class KnightStateKO_Spartan(State):
 
     def __init__(self, knight):
 
@@ -186,7 +186,7 @@ class KnightStateKO_TeamA(State):
         return g.ko_check_conditions(self.knight, 'seeking')
 
 
-class KnightStateHealing_TeamA(State):
+class KnightStateHealing_Spartan(State):
 
     def __init__(self, knight):
 
