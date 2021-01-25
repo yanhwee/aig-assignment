@@ -89,12 +89,7 @@ class WizardStateSeeking_TeamA(State):
         g.set_move_target(self.wizard, path_pos)
         g.update_velocity(self.wizard)
 
-        retreat_enemy = g.get_nearest_enemy_that_is(self.wizard,
-            lambda entity: g.within_range_of_target(self.wizard, entity, NEAR_ENEMY_RETREAT_RADIUS),
-            lambda entity: g.in_sight_with_preaimed_target(self.wizard, entity))
-
-       
-        if self.wizard.current_hp < HEALTH_PERCENTAGE * (self.wizard.max_hp) and retreat_enemy is None:
+        if self.wizard.current_hp < HEALTH_PERCENTAGE * (self.wizard.max_hp):
             self.wizard.heal()
             
     def check_conditions(self):
@@ -146,8 +141,6 @@ class WizardStateSkirmishing_TeamA(State):
             path_pos = g.position_away_from_target_using_path(self.wizard,retreat_enemy)
             g.set_move_target(self.wizard, path_pos)
             
-        if self.wizard.current_hp < HEALTH_PERCENTAGE * (self.wizard.max_hp) and retreat_enemy is None:
-            self.wizard.heal()
         
         g.update_velocity(self.wizard)     
 
