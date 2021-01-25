@@ -8,7 +8,6 @@ from State import *
 import g
 
 DEFAULT_PATH = 3
-MAX_PATH_VALUE_TO_CONSIDER_TO_SWITCH_PATH = 0.5
 PATHS_TO_CONSIDER_TO_SWITCH_TO = [0,1,2,3]
 
 KNIGHT_SENSING_RADIUS = KNIGHT_MIN_TARGET_DISTANCE
@@ -54,7 +53,6 @@ class Knight_TeamA(Character):
             self.level += 1
             if self.level < len(KNIGHT_HEALING_THRESHOLD_LIST):
                 self.healing_threshold = KNIGHT_HEALING_THRESHOLD_LIST[self.level-1]
-                print(self.healing_threshold)
             else:
                 self.healing_threshold = KNIGHT_HEALING_THRESHOLD_LIST[-1]
             self.level_up('healing') 
@@ -161,9 +159,8 @@ class KnightStateAttacking_TeamA(State):
             return "seeking"
         
         # if knight's health below a certain threshold, heal
-        health = self.knight.current_hp/self.knight.max_hp *100
-        if health <= self.knight.healing_threshold:
-            print("Going to healing", health, self.knight.healing_threshold)
+        percent_health = self.knight.current_hp/self.knight.max_hp *100
+        if percent_health <= self.knight.healing_threshold:
             return "healing"
 
         return None
@@ -218,9 +215,8 @@ class KnightStateHealing_TeamA(State):
             return "seeking"
         
         # if knight's health above a certain threshold, attack
-        health = self.knight.current_hp/self.knight.max_hp *100
-        if health > self.knight.healing_threshold:
-            print("Going to attacking", health, self.knight.healing_threshold)
+        percent_health = self.knight.current_hp/self.knight.max_hp *100
+        if percent_health > self.knight.healing_threshold:
             return "attacking"
 
 # Helper Functions
